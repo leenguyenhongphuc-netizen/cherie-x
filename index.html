@@ -90,6 +90,24 @@ select{font:500 14px var(--f-body);color:var(--ink);background:var(--bg);border:
 .ops{display:grid;gap:10px}
 .op{border-left:2px solid var(--sc,var(--brass));padding:2px 0 2px 12px}
 .op p{margin:2px 0;color:var(--ink);max-width:66ch}
+.org{display:grid;gap:0;justify-items:center}
+.org .stem{width:2px;height:18px;background:var(--line)}
+.org-owner{background:var(--surface);border:2px solid var(--brass);border-radius:16px;padding:12px 16px;text-align:center;max-width:420px;width:100%}
+.org-owner .role{font-family:var(--f-head);font-size:18px;font-weight:600}
+.org-owner .who{font-size:13px;color:var(--muted)}
+.org-block{width:100%;border:1px solid var(--line);border-radius:18px;padding:12px;background:var(--tint)}
+.org-block > .bt{font-size:11.5px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 10px 2px}
+.org-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:720px){.org-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.unit{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:10px 12px;min-width:0;border-top:3px solid var(--uc,var(--line))}
+.unit .un{font-weight:600;font-size:14px;margin-bottom:6px}
+.person{display:flex;justify-content:space-between;gap:8px;align-items:baseline;padding:5px 0;border-top:1px dashed var(--line);font-size:13px}
+.person:first-of-type{border-top:none}
+.person .pr{min-width:0}
+.person .pr small{display:block;color:var(--muted);font-size:11.5px;line-height:1.35}
+.pill{flex:0 0 auto;font-family:var(--f-mono);font-size:10.5px;border-radius:999px;padding:2px 7px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.pill.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.person.off{opacity:.5}
 .op .muted{color:var(--muted);font-size:13px}
 ol.steps{margin:6px 0 0;padding-left:20px} ol.steps li{margin:3px 0}
 ul.plain{margin:6px 0 0;padding-left:18px} ul.plain li{margin:3px 0}
@@ -315,7 +333,7 @@ const SEG = {
   office:{name:'Office', key:'O', color:'var(--office)', soft:'var(--office-soft)'},
   seconde:{name:'Seconde', key:'S', color:'var(--seconde)', soft:'var(--seconde-soft)'}
 };
-const TABS = [['tong','Tổng ChérieX','var(--ink)'],['closet','Closet','var(--closet)'],['care','Care','var(--care)'],['office','Office','var(--office)'],['seconde','Seconde','var(--seconde)']];
+const TABS = [['tong','Tổng ChérieX','var(--ink)'],['closet','Closet','var(--closet)'],['care','Care','var(--care)'],['office','Office','var(--office)'],['seconde','Seconde','var(--seconde)'],['nhansu','Nhân sự','var(--brass)']];
 const PHASES = [
   ['nam','Cả năm 2027',0,11],['gd1','GĐ1 Khởi động · T1–T2',0,1],['gd2','GĐ2 Mở rộng · T3–T5',2,4],
   ['gd3','GĐ3 Cao điểm · T6–T8',5,7],['gd4','GĐ4 Mùa mưa · T9–T12',8,11]];
@@ -496,6 +514,48 @@ function viewOffice(m,r,pname,p){
    <div class="op"><h3>Mục tiêu 2027 [GĐ]</h3><ul class="plain"><li>4 mẹ sáng lập T3, 22 mẹ cuối năm (khoảng 14% của ~159 mẹ tiềm năng Office đã ước tính)</li><li>Marketing 3,5 tr/tháng, chủ yếu nhóm mẹ bầu, bệnh viện sản, HR công ty</li><li>Bán chéo: Care giặt đồ sơ sinh, Closet đầm đầy tháng, thôi nôi</li></ul></div></div>`;
   return html;
 }
+const PEOPLE = [
+  // group, unit, role, note, start (index tháng 2027; -1 = đã có từ 12/2026), cost/tháng, kind
+  ['chung','quay','Quầy, CSKH','Zalo tiệm, lên đơn cả 4 mảng, thu tiền, kiểm đồ khi khách trả, gửi tin chăm sóc mẹ bầu',-1,7000000,'cố định'],
+  ['chung','giao','Giao nhận','Tối T6 lấy đồ Office, CN giao nhà, T2 giao văn phòng; đầm Closet ghép chuyến',5,6500000,'khoán → cố định'],
+  ['chung','noidung','Nội dung, mạng xã hội','Video, bài đăng cho cả 4 mảng theo mùa',0,6000000,'CTV'],
+  ['chung','ketoan','Kế toán','Thuế hộ kinh doanh, sổ sách, hóa đơn điện tử',-1,1500000,'thuê ngoài'],
+  ['closet','closet','Stylist Closet','Tư vấn Zalo, mang đồ thử tận khách sạn; T1–T4 chủ tiệm kiêm',4,7000000,'cố định'],
+  ['care','care','Kỹ thuật viên 1','Giặt, hấp, kiểm đồ ~1.100 món chuẩn/tháng',-1,8500000,'cố định'],
+  ['care','care','Kỹ thuật viên 2','Tuyển khi người 1 dùng trên 75% công suất 2 tháng liền',4,8500000,'cố định'],
+  ['care','care','Thợ may','Sửa đồ khách ngoài và đồ tổ hợp; chia 50% doanh thu sửa',0,0,'chia doanh thu'],
+  ['office','office','Stylist tủ đồ Mẹ','Xếp tủ 10 bộ mỗi tuần; trả khoán ~200k/khách/tháng',2,0,'khoán'],
+  ['seconde','seconde','CTV chụp ảnh, đăng bán','Chụp 4 góc, đăng web, Shopee, live tối T6; nhận lô Đà Lạt',4,3000000,'CTV'],
+];
+function viewNhanSu(m,r,pname,p){
+  const end = r[1], on = x => x[4] <= end;
+  const active = PEOPLE.filter(on), fixed = active.filter(x=>x[6]==='cố định' || x[6]==='khoán → cố định');
+  const cost = active.reduce((s,x)=>s+x[5],0) + 10000000;
+  const stylistOffice = (m.O.active[end]||0) * 200000;
+  const mon = i => i < 0 ? '12/26' : 'T'+(i+1);
+  const person = x => `<div class="person ${on(x)?'':'off'}"><div class="pr">${x[2]}<small>${x[3]}</small></div><span class="pill ${on(x)?'on':''}">${on(x)?'đang có':'từ '+mon(x[4])}</span></div>`;
+  const unit = (key, name, color) => `<div class="unit" style="--uc:${color}"><div class="un">${name}</div>${PEOPLE.filter(x=>x[1]===key).map(person).join('')}</div>`;
+  const segUnit = (key, name, color, extra) => `<div class="unit" style="--uc:${color}"><div class="un">${name}</div>${extra||''}${PEOPLE.filter(x=>x[0]===key).map(person).join('')}</div>`;
+  const ownerLine = t => `<div class="person"><div class="pr">Chủ tiệm<small>${t}</small></div><span class="pill on">đang có</span></div>`;
+  let html = `<h1>Nhân sự · ${pname}</h1><p class="lead">${fixed.length+1} người cố định, ${active.length - fixed.length} cộng tác hoặc khoán, cuối giai đoạn. Một khối dùng chung phục vụ cả 4 mảng; mỗi mảng chỉ giữ người làm việc chuyên môn riêng.</p>`;
+  html += `<div class="kpis">${kpi('Người cố định',num(fixed.length+1),'gồm chủ tiệm')}${kpi('Cộng tác, khoán',num(active.length-fixed.length),'trả theo việc')}${kpi('Chi phí người mỗi tháng',tr(cost + stylistOffice),'cuối giai đoạn, gồm lương chủ 10 tr')}${kpi('Khách Office cuối kỳ',num(m.O.active[end]||0),'stylist khoán theo tủ')}</div>`;
+  html += `<h2>Sơ đồ tổ chức</h2><div class="org">
+    <div class="org-owner"><div class="role">Chủ tiệm · Giám đốc tổ hợp</div><div class="who">Mua hàng, giá, tài chính, thương hiệu, đối tác (RẬP, Đà Lạt, khách doanh nghiệp Care)</div></div>
+    <div class="stem"></div>
+    <div class="org-block"><div class="bt">Dùng chung · cả 4 mảng</div><div class="org-grid">${unit('quay','Quầy','var(--ink)')}${unit('giao','Giao nhận','var(--ink)')}${unit('noidung','Nội dung','var(--ink)')}${unit('ketoan','Kế toán','var(--ink)')}</div></div>
+    <div class="stem"></div>
+    <div class="org-block"><div class="bt">Dùng riêng · từng mảng</div><div class="org-grid">
+      ${segUnit('closet','Closet','var(--closet)', ownerLine('Duyệt mẫu nhập, giá thuê; tư vấn T1–T4'))}
+      ${segUnit('care','Care','var(--care)')}
+      ${segUnit('office','Office · Mẹ bầu & Sau sinh','var(--office)', ownerLine('Điều hành, chọn đồ TIATI MOM; lương cứng khi trên 45 khách'))}
+      ${segUnit('seconde','Seconde','var(--seconde)', ownerLine('Duyệt giá, ký hợp đồng ủy thác với đối tác Đà Lạt'))}
+    </div></div></div>`;
+  html += `<h2>Dùng chung và dùng riêng</h2><div class="panel tbl"><table><thead><tr><th>Việc</th><th>Chung hay riêng</th><th>Ai phụ trách</th></tr></thead><tbody>
+    ${[['Mặt bằng, quầy, Zalo tiệm','Chung','Quầy'],['Mã khách (số Zalo), hồ sơ khách','Chung','Quầy'],['Tuyến giao nhận','Chung','Giao nhận'],['Giặt, hấp, sửa mọi món đồ','Chung (qua Care)','Kỹ thuật viên Care'],['Nội dung thương hiệu, mạng xã hội','Chung','CTV nội dung'],['Thuế, sổ sách','Chung','Kế toán thuê ngoài'],['Kho đồ, mã đồ, giá bán','Riêng từng mảng','Chủ tiệm duyệt'],['Website, Sheet dữ liệu','Riêng từng mảng','Chủ tiệm; ChérieX gom số'],['Tư vấn chuyên môn (stylist, kỹ thuật)','Riêng từng mảng','Người của mảng']].map(x=>`<tr><td>${x[0]}</td><td style="text-align:left;font-family:var(--f-body)">${x[1]}</td><td style="text-align:left;font-family:var(--f-body)">${x[2]}</td></tr>`).join('')}
+  </tbody></table></div>`;
+  html += `<h2>Nhịp làm việc</h2><div class="panel ops" style="--sc:var(--brass)"><div class="op"><ul class="plain"><li>Sáng thứ 2: họp 30 phút cả nhóm, xem đơn tuần, lịch giao, đồ cần giặt</li><li>Mỗi tối: quầy chốt đơn và tiền trong ngày</li><li>Cuối tháng: ChérieX gom số 4 mảng lên trang này</li><li>Người nghỉ thì người khác đỡ: quầy đỡ stylist Closet, chủ tiệm đỡ quầy, thợ may đỡ hấp ở Care</li></ul></div></div>`;
+  return html;
+}
 function viewSeconde(m,r,pname,p){
   const S=m.S, g=SEG.seconde, dl = p.seconde==='dalat';
   let html = segHead('Seconde', g.color, r, pname, S.rev, S.profit);
@@ -517,7 +577,7 @@ function render(){
   const pr = presetOf();
   $('#scen-sum').textContent = '· ' + (pr==='dx' ? 'Đề xuất ChérieX' : pr==='ban' ? 'Phương án bạn chọn 02/11' : 'Tự chọn') + ' · ' + $('#s-factor').selectedOptions[0].text.split(' (')[0];
   document.querySelectorAll('#presets .chip').forEach(b=>b.setAttribute('aria-pressed', b.dataset.preset===pr));
-  const v = {tong:viewTong, closet:viewCloset, care:viewCare, office:viewOffice, seconde:viewSeconde}[state.tab];
+  const v = {tong:viewTong, closet:viewCloset, care:viewCare, office:viewOffice, seconde:viewSeconde, nhansu:viewNhanSu}[state.tab];
   $('#view').innerHTML = v(m, r, pname, p);
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected', b.dataset.t===state.tab));
   document.querySelectorAll('#chips .chip').forEach(b=>b.setAttribute('aria-pressed', b.dataset.p===state.phase));
