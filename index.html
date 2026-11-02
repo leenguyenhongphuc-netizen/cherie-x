@@ -82,6 +82,8 @@ details.scen{background:var(--surface);border:1px solid var(--line);border-radiu
 details.scen summary{cursor:pointer;padding:12px 14px;font-weight:600;font-size:14px;list-style:none;display:flex;gap:8px;align-items:center}
 details.scen summary::-webkit-details-marker{display:none}
 details.scen summary .chev{margin-left:auto;color:var(--muted);font-weight:400;font-size:12px}
+.presets{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 12px}
+.presets .chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .scen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:0 14px 14px}
 .scen-grid label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
 select{font:500 14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
@@ -113,15 +115,24 @@ footer a{color:var(--muted)}
 
   <details class="scen" id="scen">
     <summary>Kịch bản đang xem <span id="scen-sum" style="font-weight:400;color:var(--muted);font-size:12.5px"></span><span class="chev">Đổi</span></summary>
+    <div class="presets" id="presets"><button class="chip" data-preset="dx">Đề xuất ChérieX</button><button class="chip" data-preset="ban">Phương án bạn chọn 02/11</button></div>
     <div class="scen-grid">
       <label for="s-factor">Lượng khách
         <select id="s-factor"><option value="0.75">Thận trọng (−25%)</option><option value="1" selected>Cơ sở</option><option value="1.2">Tích cực (+20%)</option></select></label>
       <label for="s-closet">Closet
-        <select id="s-closet"><option value="cu" selected>Mô hình cũ: mua đầm ~3,68 tr, 9 lượt rồi bán lại</option><option value="dx">Mua thông minh: đầm ≤ 1,3 tr, 15 lượt</option></select></label>
+        <select id="s-closet"><option value="cu">Mô hình cũ: mua đầm ~3,68 tr, 9 lượt rồi bán lại</option><option value="dx" selected>Mua thông minh: đầm ≤ 1,3 tr, 15 lượt</option><option value="hang">3 hạng: Signature 650k · Tiệc 420k · Daily RẬP 180k</option></select></label>
       <label for="s-care">Care
         <select id="s-care"><option value="gon" selected>Gọn: 1 máy giặt, 1 máy sấy, 1 máy hấp (~40 tr)</option><option value="full">Đầy đủ như kế hoạch Care (77 tr)</option></select></label>
       <label for="s-office">Office
-        <select id="s-office"><option value="me" selected>Chỉ dòng Mẹ bầu & Sau sinh</option><option value="full">6 dòng như kế hoạch Office</option></select></label>
+        <select id="s-office"><option value="me-rap" selected>Mẹ bầu & Sau sinh, đầm TIATI MOM (RẬP)</option><option value="me">Mẹ bầu & Sau sinh, đồ IVY/MARC</option><option value="full">6 dòng như kế hoạch Office</option></select></label>
+      <label for="s-price">Giá thuê Closet
+        <select id="s-price"><option value="0">Giữ giá hiện tại</option><option value="0.1" selected>Tăng 10%</option></select></label>
+      <label for="s-kg">Đầm ký gửi cho thuê (cuối năm)
+        <select id="s-kg"><option value="1">17 đầm</option><option value="2" selected>34 đầm</option></select></label>
+      <label for="s-careup">Care khách doanh nghiệp
+        <select id="s-careup"><option value="0">Theo kế hoạch Care</option><option value="0.15" selected>Ký thêm, doanh thu ngoài +15%</option></select></label>
+      <label for="s-rent">Mặt bằng chung
+        <select id="s-rent"><option value="1">14 tr/tháng</option><option value="0.857142857" selected>12 tr/tháng</option></select></label>
       <label for="s-seconde">Seconde
         <select id="s-seconde"><option value="dalat" selected>Có hợp tác Đà Lạt (ký gửi B2B)</option><option value="goc">Chỉ ký gửi lẻ và đồ của tiệm</option></select></label>
     </div>
@@ -143,45 +154,66 @@ function cherieModel(p) {
   const sum = a => a.reduce((s, x) => s + x, 0);
 
   // ---------------- CLOSET ----------------
-  const closetOld = p.closet === 'cu';
+  // cu   = mô hình cũ: mua đầm ~3,68 tr, 9 lượt rồi bán lại
+  // dx   = mua thông minh: đầm mới ≤ 1,3 tr, 15 lượt
+  // hang = 3 hạng: Signature (39 đầm hiện có, thuê 650k, không mua thêm) · Tiệc (≤ 1,3 tr, 420k) · Daily RẬP (~530k giá sỉ, 180k, ~30% kho)
+  const mode = p.closet;
+  const PU = 1 + (p.priceUp || 0);                       // tăng giá thuê
   const ownTarget = [45, 50, 55, 62, 70, 78, 80, 80, 78, 78, 80, 85];
-  const kgRent = [0, 0, 0, 0, 3, 5, 7, 9, 11, 13, 15, 17];
+  const kgRent = [0, 0, 0, 0, 3, 5, 7, 9, 11, 13, 15, 17].map(x => x * (p.kgx || 1));
   const turns = [1.6, 2.0, 1.6, 2.0, 2.5, 2.8, 2.9, 2.6, 1.6, 1.3, 1.7, 2.3].map(t => t * F);
-  const RENT = 420000, ANC = 59000;
-  const LIFE = closetOld ? 9 : 15;
-  const OLD_COST = 3679744;
-  const NEW_COST = closetOld ? 3679744 : 1300000;
   const careDress = i => (p.care === 'gon' ? (i < 6 ? 45000 : 38000) : (i < 5 ? 45000 : 38000));
   const VAR_OTHER = 47000;
   const closetFixed = i => 6000000 + (i >= 4 ? 7000000 : 0);
-  let oldN = 39, newN = 6;
-  const C = { rentals: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], retired: [], kho: [] };
+  const life = mode === 'cu' ? 9 : 15;
+  const pools = [
+    { k: 'sig', name: mode === 'hang' ? 'Signature' : 'Đầm hiện có', n: 39, cost: 3679744, rent: mode === 'hang' ? 650000 : 420000, anc: 59000, mult: mode === 'hang' ? 0.6 : 1, life, resale: 860000, replace: mode !== 'hang' },
+    { k: 'tiec', name: 'Tiệc', n: 6, cost: mode === 'cu' ? 3679744 : 1300000, rent: 420000, anc: 59000, mult: 1, life, resale: mode === 'cu' ? 860000 : 660000, replace: true },
+    { k: 'daily', name: 'Daily RẬP', n: 0, cost: 530000, rent: 180000, anc: 40000, mult: 1.3, life: 15, resale: 150000, replace: true, share: mode === 'hang' ? 0.30 : 0 },
+  ];
+  const C = { rentals: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], retired: [], retiredValue: [], retiredDaily: [], kho: [], tiers: {} };
+  pools.forEach(pl => { C.tiers[pl.k] = { name: pl.name, rentals: [], rev: [], profit: [], kho: [], rent: pl.rent * PU, cost: pl.cost }; });
   for (let i = 0; i < M; i++) {
-    const total = oldN + newN + kgRent[i];
-    const r = Math.round(total * turns.at(i));
-    const rOld = r * oldN / total, rNew = r * newN / total, rKg = r - rOld - rNew;
-    const retOld = Math.min(oldN, rOld / LIFE), retNew = rNew / LIFE;
-    oldN -= retOld; newN -= retNew;
-    const buy = Math.max(0, ownTarget.at(i) - (oldN + newN));
-    newN += buy;
-    const rev = r * (RENT + ANC);
-    const cost = rKg * RENT * 0.5 + r * careDress(i) + r * VAR_OTHER;
+    let r = 0, rev = 0, cost = 0, dep = 0, ret = 0, retVal = 0, retDaily = 0;
+    pools.forEach(pl => {
+      const rr = pl.n * pl.mult * turns.at(i);
+      const rv = rr * (pl.rent * PU + pl.anc);
+      const cs = rr * (careDress(i) + VAR_OTHER), dp = rr * pl.cost / pl.life;
+      const rt = Math.min(pl.n, rr / pl.life);
+      pl.n -= rt;
+      r += rr; rev += rv; cost += cs; dep += dp; ret += pl.k === 'daily' ? 0 : rt; retVal += pl.k === 'daily' ? 0 : rt * pl.resale; retDaily += pl.k === 'daily' ? rt : 0;
+      const t = C.tiers[pl.k]; t.rentals.push(rr); t.rev.push(rv); t.profit.push(rv - cs - rv * 0.10 - dp);
+    });
+    const rKg = kgRent.at(i) * turns.at(i);
+    const kgRev = rKg * (420000 * PU + 59000);
+    r += rKg; rev += kgRev; cost += rKg * (careDress(i) + VAR_OTHER) + rKg * 420000 * PU * 0.5;
+    // mua bù theo kho mục tiêu
+    const target = ownTarget.at(i);
+    const daily = pools.at(2), tiec = pools.at(1), sig = pools.at(0);
+    let capex = 0;
+    if (daily.share) { const need = Math.max(0, target * daily.share - daily.n); daily.n += need; capex += need * daily.cost; }
+    const have = pools.reduce((s, pl) => s + pl.n, 0);
+    const buy = Math.max(0, target - have);
+    tiec.n += buy; capex += buy * tiec.cost;
+    pools.forEach(pl => C.tiers[pl.k].kho.push(pl.n));
     const tax = rev * 0.10;
-    const dep = rOld * OLD_COST / LIFE + rNew * NEW_COST / LIFE;
     const contrib = rev - cost - tax - dep;
     C.rentals.push(r); C.rev.push(rev); C.cost.push(cost); C.tax.push(tax); C.dep.push(dep);
     C.contrib.push(contrib); C.fixed.push(closetFixed(i)); C.profit.push(contrib - closetFixed(i));
-    C.capex.push(buy * NEW_COST); C.retired.push(retOld + retNew); C.kho.push(oldN + newN);
+    C.capex.push(capex); C.retired.push(ret); C.retiredValue.push(retVal); C.retiredDaily.push(retDaily);
+    C.kho.push(pools.reduce((s, pl) => s + pl.n, 0));
+    void sig;
   }
 
   // ---------------- OFFICE ----------------
-  const meOnly = p.office === 'me';
+  const meOnly = p.office === 'me' || p.office === 'me-rap';
+  const KHO = p.office === 'me-rap' ? 4900000 : 6600000;   // vốn tủ đồ mỗi khách; TIATI MOM giá sỉ giảm ~1,7 tr [GĐ]
   const activeBase = meOnly ? [0, 0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22] : [0, 0, 6, 10, 14, 18, 22, 26, 30, 33, 36, 40];
   const active = activeBase.map(x => Math.round(x * F));
   const ARPU = meOnly ? 1600000 : 1750000;
   const oCare = meOnly ? 180000 : 240000;
   const oVar = 80000 + 200000 + 35000;
-  const oDep = 6600000 / 18;
+  const oDep = KHO / 18;
   const oFixed = i => (i === 0 ? 0 : (meOnly ? 3500000 : 5500000));
   const O = { active: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], unearned: [], deposit: [] };
   let prev = 0;
@@ -191,14 +223,14 @@ function cherieModel(p) {
     const contrib = rev - cost - tax - dep;
     O.active.push(a); O.rev.push(rev); O.cost.push(cost); O.tax.push(tax); O.dep.push(dep);
     O.contrib.push(contrib); O.fixed.push(oFixed(i)); O.profit.push(contrib - oFixed(i));
-    O.capex.push(Math.max(0, a - prev) * 6600000); O.unearned.push(a * ARPU); O.deposit.push(a * 1000000);
+    O.capex.push(Math.max(0, a - prev) * KHO); O.unearned.push(a * ARPU); O.deposit.push(a * 1000000);
     prev = a;
   }
 
   // ---------------- CARE ----------------
   const lean = p.care === 'gon';
   const carePlan = [37227500, 26812500, 39607500, 48972500, 58677500, 67682500, 75967500, 78482500, 85140000, 95970000, 108800000, 114240000];
-  const ext = carePlan.map(x => x * 0.80 * F);
+  const ext = carePlan.map(x => x * 0.80 * F * (1 + (p.careUp || 0)));
   const officeUnits = active.map(a => a * (meOnly ? 15 : 20));
   const secUnits = [0, 0, 10, 15, 20, 30, 30, 35, 35, 40, 40, 45];
   const g2 = lean ? 6 : 5;                          // tháng có máy riêng (index): gọn = T7, đầy đủ = T6
@@ -226,31 +258,34 @@ function cherieModel(p) {
   // ---------------- SECONDE ----------------
   const dalat = p.seconde === 'dalat';
   const sellRate = [0, 0, .30, .30, .30, .40, .40, .40, .50, .50, .50, .50];
-  const REAL = 860000, DRESS_COST = 85000 + 40000 + 20000 + 45000 + 5000 + 0.015 * REAL;
+  const DRESS_FIX = 85000 + 40000 + 20000 + 45000 + 5000;   // phí sàn, Care, ảnh, ship, hoàn
+  const DAILY_PRICE = 150000, DAILY_COST = 20000;            // đầm Daily hết vòng: thanh lý tại tiệm
   let kg = [0, 0, 1.4, 2.1, 2.9, 3.5, 3.9, 4.1, 4.5, 5.0, 5.4, 5.0];
   const kgSum = sum(kg); kg = kg.map(x => x * 39803400 * F / kgSum);
   const rtb = [0, 0, 0, 0, 0].concat(Array(7).fill(18513482 * F / 7));
   const dlItems = (dalat ? [0, 0, 0, 20, 30, 40, 50, 60, 70, 80, 100, 110] : Array(12).fill(0)).map(x => x * F);
   const DL_PRICE = 380000, DL_RATE = 0.35, DL_COST = 20000 + 15000 + 8000 + 0.03 * DL_PRICE + 0.07 * DL_RATE * DL_PRICE;
   const sFixedBase = [0, 5000000, 1000000, 1000000, 4000000, 5000000, 5000000, 5000000, 6000000, 6000000, 6000000, 6000000];
-  const S = { in: [], sold: [], rev: [], revDress: [], revKg: [], revDl: [], cost: [], contrib: [], fixed: [], profit: [], dlItems: [] };
-  let stock = 0;
+  const S = { in: [], sold: [], rev: [], revDress: [], revKg: [], revDl: [], revDaily: [], cost: [], contrib: [], fixed: [], profit: [], dlItems: [] };
+  let stock = 0, stockVal = 0;
   for (let i = 0; i < M; i++) {
-    let inflow = i >= 2 ? C.retired.at(i) : 0;
-    if (i === 2) inflow += C.retired.at(0) + C.retired.at(1);
-    stock += inflow;
-    const sold = stock * sellRate.at(i); stock -= sold;
-    const revDress = sold * REAL + rtb.at(i), revKg = kg.at(i), revDl = dlItems.at(i) * DL_PRICE * DL_RATE;
-    const rev = revDress + revKg + revDl;
-    const cost = sold * DRESS_COST + revKg * 0.25 + rtb.at(i) * 0.05 + dlItems.at(i) * DL_COST;
+    let inflow = i >= 2 ? C.retired.at(i) : 0, inVal = i >= 2 ? C.retiredValue.at(i) : 0;
+    if (i === 2) { inflow += C.retired.at(0) + C.retired.at(1); inVal += C.retiredValue.at(0) + C.retiredValue.at(1); }
+    stock += inflow; stockVal += inVal;
+    const rate = sellRate.at(i), sold = stock * rate, soldVal = stockVal * rate; stock -= sold; stockVal -= soldVal;
+    const dailyOut = C.retiredDaily.at(i);
+    const revDaily = dailyOut * DAILY_PRICE;
+    const revDress = soldVal + rtb.at(i), revKg = kg.at(i), revDl = dlItems.at(i) * DL_PRICE * DL_RATE;
+    const rev = revDress + revKg + revDl + revDaily;
+    const cost = sold * DRESS_FIX + soldVal * 0.015 + revKg * 0.25 + rtb.at(i) * 0.05 + dlItems.at(i) * DL_COST + dailyOut * DAILY_COST;
     const fixed = sFixedBase.at(i) + (dalat && i >= 5 ? 2000000 : 0);
-    S.in.push(inflow); S.sold.push(sold); S.rev.push(rev); S.revDress.push(revDress); S.revKg.push(revKg); S.revDl.push(revDl);
+    S.in.push(inflow); S.sold.push(sold); S.rev.push(rev); S.revDress.push(revDress); S.revKg.push(revKg); S.revDl.push(revDl); S.revDaily.push(revDaily);
     S.cost.push(cost); S.contrib.push(rev - cost); S.fixed.push(fixed); S.profit.push(rev - cost - fixed); S.dlItems.push(dlItems.at(i));
   }
 
   // ---------------- KHỐI CHUNG ----------------
   const sharedItems = [
-    ['Mặt bằng chung', Array(12).fill(14000000)],
+    ['Mặt bằng chung', Array(12).fill(14000000 * (p.rentx || 1))],
     ['Điện, nước, internet', Array(12).fill(5000000)],
     ['Chủ tiệm', Array(12).fill(10000000)],
     ['Quầy, CSKH', Array(12).fill(7000000)],
@@ -269,7 +304,7 @@ function cherieModel(p) {
     + (O.unearned.at(i) - (i ? O.unearned.at(i - 1) : 0)) + (O.deposit.at(i) - (i ? O.deposit.at(i - 1) : 0)));
   let c = 0; const cum = cash.map(x => (c += x));
   return { C, O, K, S, shared, sharedItems, revExt, segProfit, net, dep, capex, cash, cum,
-    params: { LIFE, NEW_COST, ARPU, equip1, equip2, g2 } };
+    params: { ARPU, KHO, equip1, equip2, g2 } };
 }
 if (typeof module !== 'undefined') module.exports = { cherieModel };
 
@@ -300,7 +335,26 @@ const tr = x => {
 const sign = x => (x>0?'+':'') + tr(x);
 const cls = x => x<0?'neg':'pos';
 const num = x => Math.round(x).toLocaleString('vi-VN');
-function params(){ return { factor:+$('#s-factor').value, closet:$('#s-closet').value, care:$('#s-care').value, office:$('#s-office').value, seconde:$('#s-seconde').value }; }
+function params(){ return { factor:+$('#s-factor').value, closet:$('#s-closet').value, care:$('#s-care').value, office:$('#s-office').value, seconde:$('#s-seconde').value, priceUp:+$('#s-price').value, kgx:+$('#s-kg').value, careUp:+$('#s-careup').value, rentx:+$('#s-rent').value }; }
+const PRESETS = {
+  dx:{'s-closet':'dx','s-care':'gon','s-office':'me-rap','s-seconde':'dalat','s-price':'0.1','s-kg':'2','s-careup':'0.15','s-rent':'0.857142857'},
+  ban:{'s-closet':'cu','s-care':'gon','s-office':'me','s-seconde':'dalat','s-price':'0','s-kg':'1','s-careup':'0','s-rent':'1'}
+};
+function presetOf(){ for (const [k,v] of Object.entries(PRESETS)) if (Object.entries(v).every(([id,val])=>$('#'+id).value===val)) return k; return ''; }
+const LEVERS = [
+  ['Closet mua thông minh thay mô hình cũ', p=>p.closet==='dx', p=>({...p, closet: p.closet==='dx'?'cu':'dx'})],
+  ['Tăng giá thuê Closet 10%', p=>p.priceUp>0, p=>({...p, priceUp: p.priceUp>0?0:0.1})],
+  ['Care ký thêm khách doanh nghiệp (+15%)', p=>p.careUp>0, p=>({...p, careUp: p.careUp>0?0:0.15})],
+  ['Nhận gấp đôi đầm ký gửi cho thuê', p=>p.kgx>1, p=>({...p, kgx: p.kgx>1?1:2})],
+  ['Mặt bằng chung 12 tr thay 14 tr', p=>p.rentx<1, p=>({...p, rentx: p.rentx<1?1:0.857142857})],
+  ['Office dùng đầm TIATI MOM của RẬP', p=>p.office==='me-rap', p=>({...p, office: p.office==='me-rap'?'me':'me-rap'})],
+  ['Seconde hợp tác Đà Lạt', p=>p.seconde==='dalat', p=>({...p, seconde: p.seconde==='dalat'?'goc':'dalat'})],
+  ['Closet thêm hạng Daily RẬP (3 hạng)', p=>p.closet==='hang', p=>({...p, closet: p.closet==='hang'?'dx':'hang'})],
+];
+function levers(p, m){
+  const base = sum(m.net), low = Math.min(...m.cum);
+  return LEVERS.map(([name,on,flip])=>{ const q = flip(p), mm = cherieModel(q); const dn = sum(mm.net)-base, dc = Math.min(...mm.cum)-low; const isOn = on(p); return {name, isOn, gain: isOn? -dn : dn, cash: isOn? -dc : dc}; }).sort((a,b)=>b.gain-a.gain);
+}
 function range(){ const p = PHASES.find(x=>x[0]===state.phase)||PHASES[0]; return [p[2],p[3],p[1]]; }
 const slice = (a,[s,e]) => a.slice(s,e+1);
 
@@ -359,7 +413,7 @@ function segRows(m, r){
 function kpi(lab,val,note,cl){ return `<div class="kpi"><div class="lab">${lab}</div><div class="val ${cl||''}">${val}</div>${note?`<div class="note">${note}</div>`:''}</div>`; }
 
 // ---------- views ----------
-function viewTong(m, r, pname){
+function viewTong(m, r, pname, p){
   const s = segRows(m,r), net = sum(slice(m.net,r)), capex = sum(slice(m.capex,r));
   const cumR = slice(m.cum,r), low = Math.min(...m.cum), lowR = Math.min(...cumR);
   const firstProfit = m.net.findIndex((v,i)=> m.net.slice(i).every(x=>x>0));
@@ -376,6 +430,8 @@ function viewTong(m, r, pname){
   Object.entries(SEG).forEach(([k,g])=>{ const after = s.prof[k]-s.alloc[k]; html += `<tr><td><span class="dot" style="background:${g.color}"></span>${g.name}</td><td>${tr(s.rev[k])}</td><td class="${cls(s.prof[k])}">${sign(s.prof[k])}</td><td>${tr(s.alloc[k])}</td><td class="${cls(after)}">${sign(after)}</td></tr>`; });
   html += `<tr class="total"><td>ChérieX</td><td>${tr(s.tot)}</td><td>${sign(sum(Object.values(s.prof)))}</td><td>${tr(s.sh)}</td><td class="${cls(net)}">${sign(net)}</td></tr></tbody></table></div>
   <p class="lead" style="margin-top:8px;font-size:13px">Chi phí chung chia theo doanh thu. Không tính ${tr(sum(slice(m.K.int,r)))} Care làm cho các mảng khác vì là tiền chuyển nội bộ.</p>`;
+  const lv = levers(p, m);
+  html += `<h2>Điểm tạo lợi</h2><p class="lead">Mỗi dòng là phần lãi cả năm 2027 mà một thay đổi mang lại, so với kịch bản đang xem. Dòng có dấu ✓ là đã bật.</p><div class="panel tbl"><table><thead><tr><th>Thay đổi</th><th>Lãi thêm</th><th>Tiền mặt đáy</th></tr></thead><tbody>${lv.map(l=>`<tr><td>${l.isOn?'✓ ':''}${l.name}</td><td class="${cls(l.gain)}">${sign(l.gain)}</td><td class="${cls(l.cash)}">${sign(l.cash)}</td></tr>`).join('')}</tbody></table></div>`;
   html += `<h2>Tiền mặt cộng dồn</h2><div class="panel"><div class="chart">${cashChart(m.cum,r)}</div></div>`;
   html += `<h2>Chi phí chung mỗi tháng</h2><div class="panel tbl"><table><tbody>${m.sharedItems.map(([n,v])=>`<tr><td>${n}</td><td>${tr(sum(slice(v,r)))}</td></tr>`).join('')}<tr class="total"><td>Cộng</td><td>${tr(s.sh)}</td></tr></tbody></table></div>`;
   return html;
@@ -394,18 +450,24 @@ function pl(rows){ return `<div class="panel tbl"><table><tbody>${rows.map(([n,v
 function viewCloset(m,r,pname,p){
   const C=m.C, g=SEG.closet;
   const rent = sum(slice(C.rentals,r)), depPer = sum(slice(C.dep,r))/Math.max(1,rent);
-  const alt = cherieModel({...p, closet: p.closet==='cu'?'dx':'cu'});
-  const me = sum(slice(C.profit,r)), other = sum(slice(alt.C.profit,r));
-  const meY = sum(C.profit), otherY = sum(alt.C.profit);
-  const cu = p.closet==='cu';
+  const opts = [['cu','Mô hình cũ'],['dx','Mua thông minh'],['hang','3 hạng có RẬP']];
+  const yr = opts.map(([k,n])=>[k,n, k===p.closet ? sum(C.profit) : sum(cherieModel({...p, closet:k}).C.profit)]);
+  const depNote = p.closet==='cu' ? 'đầm 3,68 tr chia 9 lượt' : p.closet==='dx' ? 'đầm mới 1,3 tr chia 15 lượt' : 'bình quân 3 hạng';
   let html = segHead('Closet', g.color, r, pname, C.rev, C.profit);
-  html += `<div class="kpis">${kpi('Lượt thuê',num(rent),'đầm 24 giờ')}${kpi('Kho đầm cuối kỳ',num(C.kho[r[1]]),'chưa gồm đầm ký gửi')}${kpi('Khấu hao mỗi lượt',tr(depPer).replace(' tr',' tr'), cu?'đầm 3,68 tr chia 9 lượt':'đầm 1,3 tr chia 15 lượt')}${kpi('Tiền mua đầm',tr(sum(slice(C.capex,r))),'để giữ kho theo kế hoạch')}</div>`;
-  html += `<h2>Điều quyết định Closet lãi hay lỗ</h2><div class="panel" style="--sc:${g.color};--soft:${g.soft}">
-   <p style="margin:0">Giữ nguyên cách cho thuê 24 giờ, giá và dịch vụ. Chỉ khác ở <b>giá mua mỗi đầm</b> và <b>số lượt cho thuê trước khi bán lại</b>. Mỗi lượt thu khoảng 479k (420k tiền thuê + phí giao, Gói Yên tâm); trừ Care, giao nhận, thuế còn khoảng 340k. Một đầm 3,68 tr cho thuê 9 lượt tốn 409k khấu hao mỗi lượt, nên mỗi lượt gần như làm không công.</p>
-   <div class="compare"><div class="cmp ${cu?'on':''}"><div class="t">Mô hình cũ · cả năm</div><div class="v ${cls(cu?meY:otherY)}">${sign(cu?meY:otherY)}</div></div><div class="cmp ${cu?'':'on'}"><div class="t">Mua thông minh · cả năm</div><div class="v ${cls(cu?otherY:meY)}">${sign(cu?otherY:meY)}</div></div></div>
-   <p class="lead" style="margin:8px 0 0;font-size:13px">Lãi mảng Closet trước chi phí chung. Mua thông minh: mẫu mới ≤ 1,3 tr (mua lúc sale, hàng thiết kế giá nhập thấp, hoặc nhận ký gửi cho thuê), đầm còn đẹp cho thuê tới 15 lượt.</p></div>`;
+  html += `<div class="kpis">${kpi('Lượt thuê',num(rent),'đầm 24 giờ')}${kpi('Kho đầm cuối kỳ',num(C.kho[r[1]]),'chưa gồm đầm ký gửi')}${kpi('Khấu hao mỗi lượt',tr(depPer),depNote)}${kpi('Tiền mua đầm',tr(sum(slice(C.capex,r))),'để giữ kho theo kế hoạch')}</div>`;
+  html += `<h2>Ba cách nhập đầm, cả năm 2027</h2><div class="panel" style="--sc:${g.color};--soft:${g.soft}">
+   <div class="compare" style="grid-template-columns:repeat(3,minmax(0,1fr));margin-top:0">${yr.map(([k,n,v])=>`<div class="cmp ${k===p.closet?'on':''}"><div class="t">${n}</div><div class="v ${cls(v)}">${sign(v)}</div></div>`).join('')}</div>
+   <p class="lead" style="margin:10px 0 0;font-size:13px">Lãi mảng Closet trước chi phí chung, cùng giá thuê và cùng lượng khách. Mỗi lượt thu khoảng 479k; trừ Care, giao nhận, thuế còn khoảng 340k. Đầm 3,68 tr cho thuê 9 lượt tốn 409k khấu hao mỗi lượt; đầm 1,3 tr cho thuê 15 lượt chỉ tốn 87k.</p></div>`;
+  if (p.closet==='hang'){
+    html += `<h2>Ba hạng đầm</h2><div class="panel tbl"><table><thead><tr><th>Hạng</th><th>Giá thuê</th><th>Lượt</th><th>Doanh thu</th><th>Lãi góp</th><th>Kho cuối</th></tr></thead><tbody>${Object.values(C.tiers).map(t=>`<tr><td>${t.name}</td><td>${Math.round(t.rent/1000)}k</td><td>${num(sum(slice(t.rentals,r)))}</td><td>${tr(sum(slice(t.rev,r)))}</td><td class="${cls(sum(slice(t.profit,r)))}">${sign(sum(slice(t.profit,r)))}</td><td>${num(t.kho[r[1]])}</td></tr>`).join('')}</tbody></table></div>
+    <p class="lead" style="margin-top:8px;font-size:13px">Daily RẬP: giá nhập ~530k (giá lẻ 756k, giả định giảm 30% khi mua sỉ), cho thuê 180k. Mỗi lượt chỉ lãi khoảng 90k và chiếm chỗ của đầm tiệc lãi 250k, nên chỉ đáng giữ một góc nhỏ để kéo khách du lịch mới.</p>`;
+  }
   html += `<h2>Theo tháng</h2><div class="panel"><div class="chart">${barChart({series:[{name:'Doanh thu',color:g.color,vals:C.rev}], line:C.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Closet mỗi tháng'})}</div></div>`;
   html += `<h2>Lãi lỗ ${pname.toLowerCase()}</h2>` + pl([['Doanh thu',sum(slice(C.rev,r))],['Care nội bộ, giao nhận, chia ký gửi',sum(slice(C.cost,r))],['Thuế cho thuê (10%)',sum(slice(C.tax,r))],['Khấu hao đầm',sum(slice(C.dep,r))],['Stylist, marketing',sum(slice(C.fixed,r))],['Lãi mảng',sum(slice(C.profit,r)),1]]);
+  html += `<h2>Cách nhập đầm để có lãi</h2><div class="panel ops" style="--sc:${g.color}">
+   <div class="op"><h3>Luật mua</h3><ul class="plain"><li>Giá nhập tối đa khoảng 3 lần giá thuê: đầm thuê 420k thì nhập tối đa 1,3 tr</li><li>Nguồn: hãng sale cuối mùa (SIXDO sale ~40% giá niêm yết), giá sỉ thương hiệu thiết kế Việt, hàng mẫu</li><li>Nhận đầm ký gửi cho thuê, chia 50/50: không tốn vốn, mục tiêu 34 đầm cuối năm</li><li>Đầm còn đẹp cho thuê tới 15 lượt; chỉ chuyển Seconde khi hỏng hoặc lỗi mốt</li></ul></div>
+   <div class="op"><h3>39 đầm đắt đang có</h3><p class="muted">Không mua thêm loại 3–4 tr. Có thể đưa thành hạng Signature, giá thuê 600–700k, cho khách cần đầm hiệu.</p></div>
+   <div class="op"><h3>RẬP</h3><p class="muted">Đầm RẬP bán lẻ 656k–856k nên chỉ cho thuê được 150–200k. Hợp nhất cho dòng Mẹ của Office (TIATI MOM). Nếu dùng cho Closet thì chỉ một góc Daily nhỏ. Hỏi giá sỉ qua mục Nhượng quyền, hotline 1900 066 622.</p></div></div>`;
   html += `<h2>Cách vận hành</h2><div class="panel ops" style="--sc:${g.color}"><div class="op"><ol class="steps"><li>Khách tới từ TikTok, Instagram, Google Maps, lễ tân khách sạn và thợ chụp.</li><li>Stylist tư vấn qua Zalo, gửi 3–5 mẫu, kiểm lịch đồ.</li><li>Ký hợp đồng điện tử, thu tiền thuê và cọc; mời Gói Yên tâm.</li><li>Care chuẩn bị, giao tận khách sạn hoặc nhà.</li><li>Nhận lại, kiểm 4 ảnh, hoàn cọc ngay; Care giặt rồi trả về kho.</li><li>Đủ lượt hoặc lỗi mốt thì chuyển Seconde.</li></ol></div></div>`;
   return html;
 }
@@ -414,7 +476,7 @@ function viewCare(m,r,pname,p){
   const ext = sum(slice(K.ext,r)), intr = sum(slice(K.int,r));
   let html = segHead('Care', g.color, r, pname, K.rev, K.profit);
   html += `<div class="kpis">${kpi('Khách ngoài',tr(ext),'tiền mới vào tổ hợp')}${kpi('Làm nội bộ',tr(intr),'đầm Closet, đồ Office, Seconde')}${kpi('Kỹ thuật viên',K.ktv[r[1]]+' người','cuối kỳ')}${kpi('Tiền máy',lean?'40 tr + 24 tr':'77 tr + 35 tr',lean?'bước 1 + bước 2 (T7)':'giai đoạn 1 + 2 (T6)')}</div>`;
-  html += `<h2>Theo tháng</h2><div class="panel"><div class="legend"><span><i style="background:var(--care)"></i>Khách ngoài</span><span><i style="background:var(--care-soft);outline:1px solid var(--care)"></i>Nội bộ</span></div><div class="chart">${barChart({series:[{name:'Khách ngoài',color:'var(--care)',vals:K.ext},{name:'Nội bộ',color:'var(--care-soft)',vals:K.int}], line:K.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Care mỗi tháng'})}</div></div>`;
+  html += `<h2>Theo tháng</h2><div class="panel"><div class="legend"><span><i style="background:var(--care)"></i>Khách ngoài</span><span><i style="background:var(--care);opacity:.45"></i>Nội bộ</span></div><div class="chart">${barChart({series:[{name:'Khách ngoài',color:'var(--care)',vals:K.ext},{name:'Nội bộ',color:'var(--care-soft)',vals:K.int}], line:K.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Care mỗi tháng'})}</div></div>`;
   html += `<h2>Lãi lỗ ${pname.toLowerCase()}</h2>` + pl([['Doanh thu (ngoài + nội bộ)',sum(slice(K.rev,r))],['Xưởng giặt khô, vật tư, chia thợ may',sum(slice(K.cost,r))],['Thuế dịch vụ (7%) và dự phòng đền bù (2%)',sum(slice(K.tax,r))],['Khấu hao máy',sum(slice(K.dep,r))],['Kỹ thuật viên, marketing, phần mềm',sum(slice(K.fixed,r))],['Lãi mảng',sum(slice(K.profit,r)),1]]);
   html += `<h2>Kế hoạch Care gọn</h2><div class="panel ops" style="--sc:${g.color}">
    <div class="op"><h3>Bước 1 · từ 12/2026 · khoảng 40 tr</h3><ul class="plain"><li>1 máy giặt cửa trước 12 kg có chế độ đồ mỏng, len (~10–14 tr) [GĐ]</li><li>1 máy sấy bơm nhiệt 10 kg (~11,6 tr), sấy nhiệt thấp, không làm co đồ</li><li>1 bàn ủi hơi nước đứng công nghiệp (~4,9 tr) và 1 bàn ủi bình treo (~1,3–2,7 tr)</li><li>Kệ, móc, túi bọc, đèn kiểm đồ (~8 tr)</li><li>Giặt khô, váy cưới, đồ đính kết: gửi xưởng đối tác, Care kiểm và hấp lại</li></ul></div>
@@ -423,14 +485,14 @@ function viewCare(m,r,pname,p){
   return html;
 }
 function viewOffice(m,r,pname,p){
-  const O=m.O, g=SEG.office, me = p.office==='me';
+  const O=m.O, g=SEG.office, me = p.office!=='full', rap = p.office==='me-rap';
   let html = segHead('Office', g.color, r, pname, O.rev, O.profit);
-  html += `<div class="kpis">${kpi('Khách đang dùng',num(O.active[r[1]]),'cuối kỳ')}${kpi('Tiền mua tủ đồ',tr(sum(slice(O.capex,r))),'chỉ mua khi khách đã trả trước')}${kpi('Tiền khách trả trước đang giữ',tr(O.unearned[r[1]]+O.deposit[r[1]]),'gồm cọc 1 tr/khách')}${kpi('Doanh thu mỗi khách',me?'~1,6 tr/tháng':'~1,75 tr/tháng','đã giảm 7% trả trước')}</div>`;
+  html += `<div class="kpis">${kpi('Khách đang dùng',num(O.active[r[1]]),'cuối kỳ')}${kpi('Tiền mua tủ đồ',tr(sum(slice(O.capex,r))),'chỉ mua khi khách đã trả trước')}${kpi('Tiền khách trả trước đang giữ',tr(O.unearned[r[1]]+O.deposit[r[1]]),'gồm cọc 1 tr/khách')}${kpi('Vốn tủ đồ mỗi khách',rap?'~4,9 tr':'~6,6 tr',rap?'đầm TIATI MOM giá sỉ':'đồ IVY, MARC')}</div>`;
   html += `<h2>Theo tháng</h2><div class="panel"><div class="chart">${barChart({series:[{name:'Doanh thu',color:g.color,vals:O.rev}], line:O.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Office mỗi tháng'})}</div></div>`;
   html += `<h2>Lãi lỗ ${pname.toLowerCase()}</h2>` + pl([['Doanh thu',sum(slice(O.rev,r))],['Care nội bộ, giao nhận, stylist khoán',sum(slice(O.cost,r))],['Thuế cho thuê (10%)',sum(slice(O.tax,r))],['Khấu hao tủ đồ (18 tháng)',sum(slice(O.dep,r))],['Marketing, công cụ',sum(slice(O.fixed,r))],['Lãi mảng',sum(slice(O.profit,r)),1]]);
   html += `<h2>Tập trung Mẹ bầu & Sau sinh</h2><div class="panel ops" style="--sc:${g.color}">
    <div class="op"><p>Một dòng, một khách hàng rõ: mẹ đi làm từ tháng thứ 4 thai kỳ đến khi đi làm lại sau sinh. Tủ đồ dùng chung giữa các mẹ ở giai đoạn khác nhau nên tiền mua đồ tăng chậm hơn số khách.</p></div>
-   <div class="op"><h3>Gói</h3><ul class="plain"><li>10 bộ 389k/tuần, 5 bộ 349k/tuần; trả trước 12 tuần giảm 7%, cọc 1 tr</li><li>Mỗi tuần 2 ngày đầm, 3 bộ áo phối quần hoặc chân váy cạp chun</li><li>Nghỉ thai sản thì tạm dừng; stylist đổi sang đồ cho con bú, không đăng ký lại</li></ul></div>
+   <div class="op"><h3>Gói</h3><ul class="plain"><li>10 bộ 389k/tuần, 5 bộ 349k/tuần; trả trước 12 tuần giảm 7%, cọc 1 tr</li><li>Mỗi tuần 2 ngày đầm, 3 bộ áo phối quần hoặc chân váy cạp chun</li><li>Đầm lấy từ dòng TIATI MOM của RẬP (bán lẻ 328k–856k) thay cho đầm IVY, MARC giá nhập ~836k: vốn tủ mỗi khách giảm từ ~6,6 tr còn ~4,9 tr [GĐ]</li><li>Nghỉ thai sản thì tạm dừng; stylist đổi sang đồ cho con bú, không đăng ký lại</li></ul></div>
    <div class="op"><h3>Mục tiêu 2027 [GĐ]</h3><ul class="plain"><li>4 mẹ sáng lập T3, 22 mẹ cuối năm (khoảng 14% của ~159 mẹ tiềm năng Office đã ước tính)</li><li>Marketing 3,5 tr/tháng, chủ yếu nhóm mẹ bầu, bệnh viện sản, HR công ty</li><li>Bán chéo: Care giặt đồ sơ sinh, Closet đầm đầy tháng, thôi nôi</li></ul></div></div>`;
   return html;
 }
@@ -438,7 +500,7 @@ function viewSeconde(m,r,pname,p){
   const S=m.S, g=SEG.seconde, dl = p.seconde==='dalat';
   let html = segHead('Seconde', g.color, r, pname, S.rev, S.profit);
   html += `<div class="kpis">${kpi('Đầm Closet bán lại',num(sum(slice(S.sold,r))),'chiếc')}${kpi('Món Đà Lạt bán',num(sum(slice(S.dlItems,r))),dl?'ký gửi B2B':'chưa bật')}${kpi('Hoa hồng ký gửi lẻ',tr(sum(slice(S.revKg,r))),'30/25/20%')}${kpi('Từ Đà Lạt',tr(sum(slice(S.revDl,r))),'phần tiệm giữ 35%')}</div>`;
-  html += `<h2>Theo tháng</h2><div class="panel"><div class="legend"><span><i style="background:var(--seconde)"></i>Đầm Chérie, thuê rồi mua</span><span><i style="background:var(--brass)"></i>Ký gửi lẻ</span><span><i style="background:var(--seconde-soft);outline:1px solid var(--seconde)"></i>Đà Lạt</span></div><div class="chart">${barChart({series:[{name:'Đầm Chérie',color:'var(--seconde)',vals:S.revDress},{name:'Ký gửi lẻ',color:'var(--brass)',vals:S.revKg},{name:'Đà Lạt',color:'var(--seconde-soft)',vals:S.revDl}], line:S.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Seconde mỗi tháng'})}</div></div>`;
+  html += `<h2>Theo tháng</h2><div class="panel"><div class="legend"><span><i style="background:var(--seconde)"></i>Đầm Chérie, thuê rồi mua</span><span><i style="background:var(--brass)"></i>Ký gửi lẻ</span><span><i style="background:var(--seconde-soft);outline:1px solid var(--seconde)"></i>Đà Lạt</span><span><i style="background:var(--muted)"></i>Thanh lý Daily</span></div><div class="chart">${barChart({series:[{name:'Đầm Chérie',color:'var(--seconde)',vals:S.revDress},{name:'Ký gửi lẻ',color:'var(--brass)',vals:S.revKg},{name:'Đà Lạt',color:'var(--seconde-soft)',vals:S.revDl},{name:'Thanh lý Daily',color:'var(--muted)',vals:S.revDaily}], line:S.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Seconde mỗi tháng'})}</div></div>`;
   html += `<h2>Lãi lỗ ${pname.toLowerCase()}</h2>` + pl([['Doanh thu phần tiệm hưởng',sum(slice(S.rev,r))],['Phí sàn, ship, ảnh, làm sạch, thuế',sum(slice(S.cost,r))],['CTV chụp ảnh, marketing',sum(slice(S.fixed,r))],['Lãi mảng',sum(slice(S.profit,r)),1]]);
   html += `<h2>Seconde · Phố Núi: hợp tác Đà Lạt</h2><div class="panel ops" style="--sc:${g.color}">
    <div class="op"><p>Tuyển chọn đồ nữ 2hand từ đối tác Đà Lạt, qua Care làm sạch, chụp ảnh chuẩn CHÉRIE, bán online toàn quốc. Hàng hợp nhất là áo khoác dạ, len, blazer, đầm dài: bán mạnh cho khách phía Bắc mùa lạnh T10–T2.</p></div>
@@ -452,17 +514,20 @@ function viewSeconde(m,r,pname,p){
 // ---------- render ----------
 function render(){
   const p = params(), m = cherieModel(p), [s,e,pname] = range(), r=[s,e];
-  $('#scen-sum').textContent = '· ' + [$('#s-factor').selectedOptions[0].text.split(' (')[0], p.closet==='cu'?'Closet cũ':'Closet mua thông minh', p.care==='gon'?'Care gọn':'Care đầy đủ', p.office==='me'?'Office chỉ Mẹ':'Office 6 dòng', p.seconde==='dalat'?'có Đà Lạt':'không Đà Lạt'].join(' · ');
+  const pr = presetOf();
+  $('#scen-sum').textContent = '· ' + (pr==='dx' ? 'Đề xuất ChérieX' : pr==='ban' ? 'Phương án bạn chọn 02/11' : 'Tự chọn') + ' · ' + $('#s-factor').selectedOptions[0].text.split(' (')[0];
+  document.querySelectorAll('#presets .chip').forEach(b=>b.setAttribute('aria-pressed', b.dataset.preset===pr));
   const v = {tong:viewTong, closet:viewCloset, care:viewCare, office:viewOffice, seconde:viewSeconde}[state.tab];
   $('#view').innerHTML = v(m, r, pname, p);
   document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected', b.dataset.t===state.tab));
-  document.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed', b.dataset.p===state.phase));
+  document.querySelectorAll('#chips .chip').forEach(b=>b.setAttribute('aria-pressed', b.dataset.p===state.phase));
 }
 $('#tabs').innerHTML = TABS.map(([k,n,c])=>`<button class="tab" role="tab" data-t="${k}" style="--tc:${c}">${n}</button>`).join('');
 $('#chips').innerHTML = PHASES.map(([k,n])=>`<button class="chip" data-p="${k}">${n}</button>`).join('');
 $('#tabs').addEventListener('click', ev=>{ const b=ev.target.closest('.tab'); if(!b) return; state.tab=b.dataset.t; history.replaceState(null,'','#'+state.tab); render(); window.scrollTo({top:0}); });
 $('#chips').addEventListener('click', ev=>{ const b=ev.target.closest('.chip'); if(!b) return; state.phase=b.dataset.p; try{localStorage.setItem('cx-phase',state.phase);}catch(e){} render(); });
 document.querySelectorAll('.scen select').forEach(el=>el.addEventListener('change', render));
+$('#presets').addEventListener('click', ev=>{ const b=ev.target.closest('[data-preset]'); if(!b) return; Object.entries(PRESETS[b.dataset.preset]).forEach(([id,v])=>{ $('#'+id).value=v; }); render(); });
 window.addEventListener('hashchange', ()=>{ const t=location.hash.replace('#',''); if(TABS.some(x=>x[0]===t)){ state.tab=t; render(); } });
 render();
 })();

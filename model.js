@@ -6,45 +6,66 @@ function cherieModel(p) {
   const sum = a => a.reduce((s, x) => s + x, 0);
 
   // ---------------- CLOSET ----------------
-  const closetOld = p.closet === 'cu';
+  // cu   = mô hình cũ: mua đầm ~3,68 tr, 9 lượt rồi bán lại
+  // dx   = mua thông minh: đầm mới ≤ 1,3 tr, 15 lượt
+  // hang = 3 hạng: Signature (39 đầm hiện có, thuê 650k, không mua thêm) · Tiệc (≤ 1,3 tr, 420k) · Daily RẬP (~530k giá sỉ, 180k, ~30% kho)
+  const mode = p.closet;
+  const PU = 1 + (p.priceUp || 0);                       // tăng giá thuê
   const ownTarget = [45, 50, 55, 62, 70, 78, 80, 80, 78, 78, 80, 85];
-  const kgRent = [0, 0, 0, 0, 3, 5, 7, 9, 11, 13, 15, 17];
+  const kgRent = [0, 0, 0, 0, 3, 5, 7, 9, 11, 13, 15, 17].map(x => x * (p.kgx || 1));
   const turns = [1.6, 2.0, 1.6, 2.0, 2.5, 2.8, 2.9, 2.6, 1.6, 1.3, 1.7, 2.3].map(t => t * F);
-  const RENT = 420000, ANC = 59000;
-  const LIFE = closetOld ? 9 : 15;
-  const OLD_COST = 3679744;
-  const NEW_COST = closetOld ? 3679744 : 1300000;
   const careDress = i => (p.care === 'gon' ? (i < 6 ? 45000 : 38000) : (i < 5 ? 45000 : 38000));
   const VAR_OTHER = 47000;
   const closetFixed = i => 6000000 + (i >= 4 ? 7000000 : 0);
-  let oldN = 39, newN = 6;
-  const C = { rentals: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], retired: [], kho: [] };
+  const life = mode === 'cu' ? 9 : 15;
+  const pools = [
+    { k: 'sig', name: mode === 'hang' ? 'Signature' : 'Đầm hiện có', n: 39, cost: 3679744, rent: mode === 'hang' ? 650000 : 420000, anc: 59000, mult: mode === 'hang' ? 0.6 : 1, life, resale: 860000, replace: mode !== 'hang' },
+    { k: 'tiec', name: 'Tiệc', n: 6, cost: mode === 'cu' ? 3679744 : 1300000, rent: 420000, anc: 59000, mult: 1, life, resale: mode === 'cu' ? 860000 : 660000, replace: true },
+    { k: 'daily', name: 'Daily RẬP', n: 0, cost: 530000, rent: 180000, anc: 40000, mult: 1.3, life: 15, resale: 150000, replace: true, share: mode === 'hang' ? 0.30 : 0 },
+  ];
+  const C = { rentals: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], retired: [], retiredValue: [], retiredDaily: [], kho: [], tiers: {} };
+  pools.forEach(pl => { C.tiers[pl.k] = { name: pl.name, rentals: [], rev: [], profit: [], kho: [], rent: pl.rent * PU, cost: pl.cost }; });
   for (let i = 0; i < M; i++) {
-    const total = oldN + newN + kgRent[i];
-    const r = Math.round(total * turns.at(i));
-    const rOld = r * oldN / total, rNew = r * newN / total, rKg = r - rOld - rNew;
-    const retOld = Math.min(oldN, rOld / LIFE), retNew = rNew / LIFE;
-    oldN -= retOld; newN -= retNew;
-    const buy = Math.max(0, ownTarget.at(i) - (oldN + newN));
-    newN += buy;
-    const rev = r * (RENT + ANC);
-    const cost = rKg * RENT * 0.5 + r * careDress(i) + r * VAR_OTHER;
+    let r = 0, rev = 0, cost = 0, dep = 0, ret = 0, retVal = 0, retDaily = 0;
+    pools.forEach(pl => {
+      const rr = pl.n * pl.mult * turns.at(i);
+      const rv = rr * (pl.rent * PU + pl.anc);
+      const cs = rr * (careDress(i) + VAR_OTHER), dp = rr * pl.cost / pl.life;
+      const rt = Math.min(pl.n, rr / pl.life);
+      pl.n -= rt;
+      r += rr; rev += rv; cost += cs; dep += dp; ret += pl.k === 'daily' ? 0 : rt; retVal += pl.k === 'daily' ? 0 : rt * pl.resale; retDaily += pl.k === 'daily' ? rt : 0;
+      const t = C.tiers[pl.k]; t.rentals.push(rr); t.rev.push(rv); t.profit.push(rv - cs - rv * 0.10 - dp);
+    });
+    const rKg = kgRent.at(i) * turns.at(i);
+    const kgRev = rKg * (420000 * PU + 59000);
+    r += rKg; rev += kgRev; cost += rKg * (careDress(i) + VAR_OTHER) + rKg * 420000 * PU * 0.5;
+    // mua bù theo kho mục tiêu
+    const target = ownTarget.at(i);
+    const daily = pools.at(2), tiec = pools.at(1), sig = pools.at(0);
+    let capex = 0;
+    if (daily.share) { const need = Math.max(0, target * daily.share - daily.n); daily.n += need; capex += need * daily.cost; }
+    const have = pools.reduce((s, pl) => s + pl.n, 0);
+    const buy = Math.max(0, target - have);
+    tiec.n += buy; capex += buy * tiec.cost;
+    pools.forEach(pl => C.tiers[pl.k].kho.push(pl.n));
     const tax = rev * 0.10;
-    const dep = rOld * OLD_COST / LIFE + rNew * NEW_COST / LIFE;
     const contrib = rev - cost - tax - dep;
     C.rentals.push(r); C.rev.push(rev); C.cost.push(cost); C.tax.push(tax); C.dep.push(dep);
     C.contrib.push(contrib); C.fixed.push(closetFixed(i)); C.profit.push(contrib - closetFixed(i));
-    C.capex.push(buy * NEW_COST); C.retired.push(retOld + retNew); C.kho.push(oldN + newN);
+    C.capex.push(capex); C.retired.push(ret); C.retiredValue.push(retVal); C.retiredDaily.push(retDaily);
+    C.kho.push(pools.reduce((s, pl) => s + pl.n, 0));
+    void sig;
   }
 
   // ---------------- OFFICE ----------------
-  const meOnly = p.office === 'me';
+  const meOnly = p.office === 'me' || p.office === 'me-rap';
+  const KHO = p.office === 'me-rap' ? 4900000 : 6600000;   // vốn tủ đồ mỗi khách; TIATI MOM giá sỉ giảm ~1,7 tr [GĐ]
   const activeBase = meOnly ? [0, 0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22] : [0, 0, 6, 10, 14, 18, 22, 26, 30, 33, 36, 40];
   const active = activeBase.map(x => Math.round(x * F));
   const ARPU = meOnly ? 1600000 : 1750000;
   const oCare = meOnly ? 180000 : 240000;
   const oVar = 80000 + 200000 + 35000;
-  const oDep = 6600000 / 18;
+  const oDep = KHO / 18;
   const oFixed = i => (i === 0 ? 0 : (meOnly ? 3500000 : 5500000));
   const O = { active: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], unearned: [], deposit: [] };
   let prev = 0;
@@ -54,14 +75,14 @@ function cherieModel(p) {
     const contrib = rev - cost - tax - dep;
     O.active.push(a); O.rev.push(rev); O.cost.push(cost); O.tax.push(tax); O.dep.push(dep);
     O.contrib.push(contrib); O.fixed.push(oFixed(i)); O.profit.push(contrib - oFixed(i));
-    O.capex.push(Math.max(0, a - prev) * 6600000); O.unearned.push(a * ARPU); O.deposit.push(a * 1000000);
+    O.capex.push(Math.max(0, a - prev) * KHO); O.unearned.push(a * ARPU); O.deposit.push(a * 1000000);
     prev = a;
   }
 
   // ---------------- CARE ----------------
   const lean = p.care === 'gon';
   const carePlan = [37227500, 26812500, 39607500, 48972500, 58677500, 67682500, 75967500, 78482500, 85140000, 95970000, 108800000, 114240000];
-  const ext = carePlan.map(x => x * 0.80 * F);
+  const ext = carePlan.map(x => x * 0.80 * F * (1 + (p.careUp || 0)));
   const officeUnits = active.map(a => a * (meOnly ? 15 : 20));
   const secUnits = [0, 0, 10, 15, 20, 30, 30, 35, 35, 40, 40, 45];
   const g2 = lean ? 6 : 5;                          // tháng có máy riêng (index): gọn = T7, đầy đủ = T6
@@ -89,31 +110,34 @@ function cherieModel(p) {
   // ---------------- SECONDE ----------------
   const dalat = p.seconde === 'dalat';
   const sellRate = [0, 0, .30, .30, .30, .40, .40, .40, .50, .50, .50, .50];
-  const REAL = 860000, DRESS_COST = 85000 + 40000 + 20000 + 45000 + 5000 + 0.015 * REAL;
+  const DRESS_FIX = 85000 + 40000 + 20000 + 45000 + 5000;   // phí sàn, Care, ảnh, ship, hoàn
+  const DAILY_PRICE = 150000, DAILY_COST = 20000;            // đầm Daily hết vòng: thanh lý tại tiệm
   let kg = [0, 0, 1.4, 2.1, 2.9, 3.5, 3.9, 4.1, 4.5, 5.0, 5.4, 5.0];
   const kgSum = sum(kg); kg = kg.map(x => x * 39803400 * F / kgSum);
   const rtb = [0, 0, 0, 0, 0].concat(Array(7).fill(18513482 * F / 7));
   const dlItems = (dalat ? [0, 0, 0, 20, 30, 40, 50, 60, 70, 80, 100, 110] : Array(12).fill(0)).map(x => x * F);
   const DL_PRICE = 380000, DL_RATE = 0.35, DL_COST = 20000 + 15000 + 8000 + 0.03 * DL_PRICE + 0.07 * DL_RATE * DL_PRICE;
   const sFixedBase = [0, 5000000, 1000000, 1000000, 4000000, 5000000, 5000000, 5000000, 6000000, 6000000, 6000000, 6000000];
-  const S = { in: [], sold: [], rev: [], revDress: [], revKg: [], revDl: [], cost: [], contrib: [], fixed: [], profit: [], dlItems: [] };
-  let stock = 0;
+  const S = { in: [], sold: [], rev: [], revDress: [], revKg: [], revDl: [], revDaily: [], cost: [], contrib: [], fixed: [], profit: [], dlItems: [] };
+  let stock = 0, stockVal = 0;
   for (let i = 0; i < M; i++) {
-    let inflow = i >= 2 ? C.retired.at(i) : 0;
-    if (i === 2) inflow += C.retired.at(0) + C.retired.at(1);
-    stock += inflow;
-    const sold = stock * sellRate.at(i); stock -= sold;
-    const revDress = sold * REAL + rtb.at(i), revKg = kg.at(i), revDl = dlItems.at(i) * DL_PRICE * DL_RATE;
-    const rev = revDress + revKg + revDl;
-    const cost = sold * DRESS_COST + revKg * 0.25 + rtb.at(i) * 0.05 + dlItems.at(i) * DL_COST;
+    let inflow = i >= 2 ? C.retired.at(i) : 0, inVal = i >= 2 ? C.retiredValue.at(i) : 0;
+    if (i === 2) { inflow += C.retired.at(0) + C.retired.at(1); inVal += C.retiredValue.at(0) + C.retiredValue.at(1); }
+    stock += inflow; stockVal += inVal;
+    const rate = sellRate.at(i), sold = stock * rate, soldVal = stockVal * rate; stock -= sold; stockVal -= soldVal;
+    const dailyOut = C.retiredDaily.at(i);
+    const revDaily = dailyOut * DAILY_PRICE;
+    const revDress = soldVal + rtb.at(i), revKg = kg.at(i), revDl = dlItems.at(i) * DL_PRICE * DL_RATE;
+    const rev = revDress + revKg + revDl + revDaily;
+    const cost = sold * DRESS_FIX + soldVal * 0.015 + revKg * 0.25 + rtb.at(i) * 0.05 + dlItems.at(i) * DL_COST + dailyOut * DAILY_COST;
     const fixed = sFixedBase.at(i) + (dalat && i >= 5 ? 2000000 : 0);
-    S.in.push(inflow); S.sold.push(sold); S.rev.push(rev); S.revDress.push(revDress); S.revKg.push(revKg); S.revDl.push(revDl);
+    S.in.push(inflow); S.sold.push(sold); S.rev.push(rev); S.revDress.push(revDress); S.revKg.push(revKg); S.revDl.push(revDl); S.revDaily.push(revDaily);
     S.cost.push(cost); S.contrib.push(rev - cost); S.fixed.push(fixed); S.profit.push(rev - cost - fixed); S.dlItems.push(dlItems.at(i));
   }
 
   // ---------------- KHỐI CHUNG ----------------
   const sharedItems = [
-    ['Mặt bằng chung', Array(12).fill(14000000)],
+    ['Mặt bằng chung', Array(12).fill(14000000 * (p.rentx || 1))],
     ['Điện, nước, internet', Array(12).fill(5000000)],
     ['Chủ tiệm', Array(12).fill(10000000)],
     ['Quầy, CSKH', Array(12).fill(7000000)],
@@ -132,6 +156,6 @@ function cherieModel(p) {
     + (O.unearned.at(i) - (i ? O.unearned.at(i - 1) : 0)) + (O.deposit.at(i) - (i ? O.deposit.at(i - 1) : 0)));
   let c = 0; const cum = cash.map(x => (c += x));
   return { C, O, K, S, shared, sharedItems, revExt, segProfit, net, dep, capex, cash, cum,
-    params: { LIFE, NEW_COST, ARPU, equip1, equip2, g2 } };
+    params: { ARPU, KHO, equip1, equip2, g2 } };
 }
 if (typeof module !== 'undefined') module.exports = { cherieModel };
