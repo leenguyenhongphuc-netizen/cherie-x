@@ -1,0 +1,472 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}</style>
+<title>ChérieX Studio</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:wght@600&family=Playfair+Display:wght@500;600&family=Be+Vietnam+Pro:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Bố cục: bảng điều hành một cột cho điện thoại — thanh chọn mảng + giai đoạn cố định trên cùng, tóm tắt trước, chi tiết sau. Theo hệ nhận diện chung CHÉRIE. */
+:root{
+  --bg:#F5F3F2; --surface:#FFFFFF; --ink:#1B1618; --muted:#6C6266; --line:#E4DDDA; --brass:#8C6B3A;
+  --closet:#7A1F3D; --office:#4E3B31; --care:#24476B; --seconde:#4F5B3A;
+  --closet-soft:#F4E6EB; --office-soft:#EFE7E1; --care-soft:#E4ECF4; --seconde-soft:#E8EBE0;
+  --good:#24724F; --bad:#B0261E; --warn:#9A5A0A; --bad-soft:#F7E4E2; --good-soft:#E2F0E8;
+  --grid:#ECE7E5; --tint:#EFEAE8;
+  --f-mark:"Bodoni Moda", "Didot", Georgia, serif;
+  --f-head:"Playfair Display", Georgia, "Times New Roman", serif;
+  --f-body:"Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#151214; --surface:#1E1A1C; --ink:#F2EDEE; --muted:#B3A8AC; --line:#3A3236; --brass:#C9A877;
+  --closet:#D9759A; --office:#DCC5B6; --care:#9DBCDD; --seconde:#9DB08A;
+  --closet-soft:#3A1E29; --office-soft:#2A211C; --care-soft:#1A2533; --seconde-soft:#262C1E;
+  --good:#6CC79A; --bad:#F08A80; --warn:#E3A857; --bad-soft:#3A1F1D; --good-soft:#1B2E24;
+  --grid:#2C2629; --tint:#241F21; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#151214; --surface:#1E1A1C; --ink:#F2EDEE; --muted:#B3A8AC; --line:#3A3236; --brass:#C9A877;
+  --closet:#D9759A; --office:#DCC5B6; --care:#9DBCDD; --seconde:#9DB08A;
+  --closet-soft:#3A1E29; --office-soft:#2A211C; --care-soft:#1A2533; --seconde-soft:#262C1E;
+  --good:#6CC79A; --bad:#F08A80; --warn:#E3A857; --bad-soft:#3A1F1D; --good-soft:#1B2E24;
+  --grid:#2C2629; --tint:#241F21; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:880px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+header.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);border-bottom:1px solid var(--line);margin-inline:calc(-1 * max(16px,env(safe-area-inset-left,0px)));padding:12px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.mark{font-family:var(--f-mark);font-weight:600;letter-spacing:.32em;font-size:18px}
+.mark-sep{width:1px;height:16px;background:var(--brass);align-self:center}
+.sub{font-weight:600;letter-spacing:.18em;font-size:12px;text-transform:uppercase}
+.asof{margin-left:auto;font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.tabs,.chips{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin-top:10px;padding-bottom:2px}
+.tabs::-webkit-scrollbar,.chips::-webkit-scrollbar{display:none}
+.tab,.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:500 13px var(--f-body);padding:7px 12px;border-radius:999px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--tc,var(--ink));border-color:var(--tc,var(--ink));color:var(--bg)}
+.chip{font-size:12px;padding:5px 10px;color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--ink);color:var(--ink);background:var(--tint)}
+.tab:focus-visible,.chip:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+h1{font-family:var(--f-head);font-weight:600;font-size:clamp(22px,5.4vw,30px);line-height:1.2;text-wrap:balance;margin:22px 0 6px}
+h2{font-family:var(--f-head);font-weight:600;font-size:19px;margin:28px 0 10px;text-wrap:balance}
+h3{font-size:14px;font-weight:600;margin:0 0 6px}
+.lead{color:var(--muted);margin:0 0 14px;max-width:62ch}
+.banner{border-radius:12px;padding:12px 14px;font-size:14px;margin:12px 0}
+.banner.bad{background:var(--bad-soft);color:var(--ink);border-left:3px solid var(--bad)}
+.banner.good{background:var(--good-soft);color:var(--ink);border-left:3px solid var(--good)}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:720px){.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px;min-width:0}
+.kpi .lab{font-size:12px;color:var(--muted)}
+.kpi .val{font-family:var(--f-mono);font-size:21px;font-weight:500;font-variant-numeric:tabular-nums;margin-top:2px;white-space:nowrap}
+.kpi .note{font-size:11.5px;color:var(--muted);margin-top:2px}
+.neg{color:var(--bad)} .pos{color:var(--good)}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:14px;margin-top:12px}
+.chart{width:100%;overflow-x:auto}
+.chart svg{display:block;width:100%;height:auto;min-width:520px}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12px;color:var(--muted);margin:2px 0 8px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 8px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{font-size:11.5px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+td{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:13px}
+td:first-child{font-family:var(--f-body);font-size:13.5px}
+tr.total td{font-weight:600;border-bottom:none}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+details.scen{background:var(--surface);border:1px solid var(--line);border-radius:16px;margin-top:14px}
+details.scen summary{cursor:pointer;padding:12px 14px;font-weight:600;font-size:14px;list-style:none;display:flex;gap:8px;align-items:center}
+details.scen summary::-webkit-details-marker{display:none}
+details.scen summary .chev{margin-left:auto;color:var(--muted);font-weight:400;font-size:12px}
+.scen-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;padding:0 14px 14px}
+.scen-grid label{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+select{font:500 14px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%}
+.ops{display:grid;gap:10px}
+.op{border-left:2px solid var(--sc,var(--brass));padding:2px 0 2px 12px}
+.op p{margin:2px 0;color:var(--ink);max-width:66ch}
+.op .muted{color:var(--muted);font-size:13px}
+ol.steps{margin:6px 0 0;padding-left:20px} ol.steps li{margin:3px 0}
+ul.plain{margin:6px 0 0;padding-left:18px} ul.plain li{margin:3px 0}
+.gate{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13.5px}
+.gate b{font-family:var(--f-mono);font-weight:500;color:var(--sc);white-space:nowrap}
+.compare{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:10px}
+.cmp{border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.cmp.on{border-color:var(--sc);background:var(--soft)}
+.cmp .t{font-size:12px;color:var(--muted)} .cmp .v{font-family:var(--f-mono);font-size:18px}
+footer{margin-top:36px;font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}
+footer a{color:var(--muted)}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <div class="brand"><span class="mark">CHÉRIE</span><span class="mark-sep"></span><span class="sub">X · Studio 2027</span><span class="asof">dự báo · 02/11/2026</span></div>
+    <div class="tabs" role="tablist" id="tabs"></div>
+    <div class="chips" id="chips" aria-label="Giai đoạn"></div>
+  </header>
+
+  <details class="scen" id="scen">
+    <summary>Kịch bản đang xem <span id="scen-sum" style="font-weight:400;color:var(--muted);font-size:12.5px"></span><span class="chev">Đổi</span></summary>
+    <div class="scen-grid">
+      <label for="s-factor">Lượng khách
+        <select id="s-factor"><option value="0.75">Thận trọng (−25%)</option><option value="1" selected>Cơ sở</option><option value="1.2">Tích cực (+20%)</option></select></label>
+      <label for="s-closet">Closet
+        <select id="s-closet"><option value="cu" selected>Mô hình cũ: mua đầm ~3,68 tr, 9 lượt rồi bán lại</option><option value="dx">Mua thông minh: đầm ≤ 1,3 tr, 15 lượt</option></select></label>
+      <label for="s-care">Care
+        <select id="s-care"><option value="gon" selected>Gọn: 1 máy giặt, 1 máy sấy, 1 máy hấp (~40 tr)</option><option value="full">Đầy đủ như kế hoạch Care (77 tr)</option></select></label>
+      <label for="s-office">Office
+        <select id="s-office"><option value="me" selected>Chỉ dòng Mẹ bầu & Sau sinh</option><option value="full">6 dòng như kế hoạch Office</option></select></label>
+      <label for="s-seconde">Seconde
+        <select id="s-seconde"><option value="dalat" selected>Có hợp tác Đà Lạt (ký gửi B2B)</option><option value="goc">Chỉ ký gửi lẻ và đồ của tiệm</option></select></label>
+    </div>
+  </details>
+
+  <main id="view"></main>
+
+  <footer>
+    Mọi số là dự báo [GĐ] cho T1–T12/2027, chưa có doanh thu thật. Nguồn: file tóm tắt Closet (30/10), Office (31/10), Care và Seconde (02/11), mô hình Care bản 2 và mô hình Seconde trên Drive "Chérie · Hệ sinh thái". Giá máy tham khảo: <a href="https://meta.vn/may-say-bom-nhiet-aqua-aqh-h1000j-ps-10kg-p99275" target="_blank" rel="noopener">máy sấy bơm nhiệt 10 kg</a>, <a href="https://meta.vn/ban-ui-hoi-nuoc-dung-cong-nghiep-silver-star-sr-5000-p77467" target="_blank" rel="noopener">bàn ủi hơi nước đứng</a>, <a href="https://meta.vn/ban-ui-hoi-nuoc-cong-nghiep-c3813?view=list" target="_blank" rel="noopener">bàn ủi bình treo</a>, <a href="https://www.misaeshop.vn/8382/kinh-nghiem-mo-cua-hang-giat-la-tu-a-z/" target="_blank" rel="noopener">chi phí mở tiệm giặt nhỏ</a>. Pháp lý: <a href="https://luatlongphan.vn/muc-xu-phat-hanh-vi-kinh-doanh-hang-cam-nhap-khau" target="_blank" rel="noopener">quần áo đã qua sử dụng thuộc danh mục cấm nhập khẩu</a>; <a href="https://einvoice.vn/tin-tuc/hkd-tinh-thue-khi-bo-thue-khoan" target="_blank" rel="noopener">thuế hộ kinh doanh 2026</a>. Shop Đà Lạt: <a href="https://toplist.vn/top-list/shop-quan-ao-second-hand-noi-tieng-nhat-tai-lam-dong-57377.htm" target="_blank" rel="noopener">Toplist</a> (chưa kiểm chứng).
+  </footer>
+</div>
+
+<script>
+// ChérieX · mô hình hợp nhất 2027 (T1–T12). Đơn vị: đồng. [GĐ] = giả định.
+// Dùng chung cho trang studio (trình duyệt) và kiểm tra bằng node.
+function cherieModel(p) {
+  const M = 12;
+  const F = p.factor;                       // hệ số sản lượng (0,75 / 1 / 1,2)
+  const sum = a => a.reduce((s, x) => s + x, 0);
+
+  // ---------------- CLOSET ----------------
+  const closetOld = p.closet === 'cu';
+  const ownTarget = [45, 50, 55, 62, 70, 78, 80, 80, 78, 78, 80, 85];
+  const kgRent = [0, 0, 0, 0, 3, 5, 7, 9, 11, 13, 15, 17];
+  const turns = [1.6, 2.0, 1.6, 2.0, 2.5, 2.8, 2.9, 2.6, 1.6, 1.3, 1.7, 2.3].map(t => t * F);
+  const RENT = 420000, ANC = 59000;
+  const LIFE = closetOld ? 9 : 15;
+  const OLD_COST = 3679744;
+  const NEW_COST = closetOld ? 3679744 : 1300000;
+  const careDress = i => (p.care === 'gon' ? (i < 6 ? 45000 : 38000) : (i < 5 ? 45000 : 38000));
+  const VAR_OTHER = 47000;
+  const closetFixed = i => 6000000 + (i >= 4 ? 7000000 : 0);
+  let oldN = 39, newN = 6;
+  const C = { rentals: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], retired: [], kho: [] };
+  for (let i = 0; i < M; i++) {
+    const total = oldN + newN + kgRent[i];
+    const r = Math.round(total * turns.at(i));
+    const rOld = r * oldN / total, rNew = r * newN / total, rKg = r - rOld - rNew;
+    const retOld = Math.min(oldN, rOld / LIFE), retNew = rNew / LIFE;
+    oldN -= retOld; newN -= retNew;
+    const buy = Math.max(0, ownTarget.at(i) - (oldN + newN));
+    newN += buy;
+    const rev = r * (RENT + ANC);
+    const cost = rKg * RENT * 0.5 + r * careDress(i) + r * VAR_OTHER;
+    const tax = rev * 0.10;
+    const dep = rOld * OLD_COST / LIFE + rNew * NEW_COST / LIFE;
+    const contrib = rev - cost - tax - dep;
+    C.rentals.push(r); C.rev.push(rev); C.cost.push(cost); C.tax.push(tax); C.dep.push(dep);
+    C.contrib.push(contrib); C.fixed.push(closetFixed(i)); C.profit.push(contrib - closetFixed(i));
+    C.capex.push(buy * NEW_COST); C.retired.push(retOld + retNew); C.kho.push(oldN + newN);
+  }
+
+  // ---------------- OFFICE ----------------
+  const meOnly = p.office === 'me';
+  const activeBase = meOnly ? [0, 0, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22] : [0, 0, 6, 10, 14, 18, 22, 26, 30, 33, 36, 40];
+  const active = activeBase.map(x => Math.round(x * F));
+  const ARPU = meOnly ? 1600000 : 1750000;
+  const oCare = meOnly ? 180000 : 240000;
+  const oVar = 80000 + 200000 + 35000;
+  const oDep = 6600000 / 18;
+  const oFixed = i => (i === 0 ? 0 : (meOnly ? 3500000 : 5500000));
+  const O = { active: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], unearned: [], deposit: [] };
+  let prev = 0;
+  for (let i = 0; i < M; i++) {
+    const a = active.at(i);
+    const rev = a * ARPU, cost = a * (oCare + oVar), tax = rev * 0.10, dep = a * oDep;
+    const contrib = rev - cost - tax - dep;
+    O.active.push(a); O.rev.push(rev); O.cost.push(cost); O.tax.push(tax); O.dep.push(dep);
+    O.contrib.push(contrib); O.fixed.push(oFixed(i)); O.profit.push(contrib - oFixed(i));
+    O.capex.push(Math.max(0, a - prev) * 6600000); O.unearned.push(a * ARPU); O.deposit.push(a * 1000000);
+    prev = a;
+  }
+
+  // ---------------- CARE ----------------
+  const lean = p.care === 'gon';
+  const carePlan = [37227500, 26812500, 39607500, 48972500, 58677500, 67682500, 75967500, 78482500, 85140000, 95970000, 108800000, 114240000];
+  const ext = carePlan.map(x => x * 0.80 * F);
+  const officeUnits = active.map(a => a * (meOnly ? 15 : 20));
+  const secUnits = [0, 0, 10, 15, 20, 30, 30, 35, 35, 40, 40, 45];
+  const g2 = lean ? 6 : 5;                          // tháng có máy riêng (index): gọn = T7, đầy đủ = T6
+  const unit = i => (i < g2 ? 24800 : 14300);
+  const intRev = [], intCost = [];
+  for (let i = 0; i < M; i++) {
+    intRev.push(C.rentals.at(i) * careDress(i) + officeUnits.at(i) * 12000 + secUnits.at(i) * 40000);
+    intCost.push(C.rentals.at(i) * unit(i) + officeUnits.at(i) * 8000 + secUnits.at(i) * unit(i));
+  }
+  const equip1 = lean ? 40000000 : 77000000, equip2 = lean ? 24000000 : 35000000;
+  const K = { ext: [], int: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], ktv: [] };
+  for (let i = 0; i < M; i++) {
+    const ktv = i < 4 ? 1 : 2;
+    const fixed = ktv * 8500000 + (i < 3 ? 8000000 : 6000000) + 500000;
+    const dep = equip1 / 36 + (i >= g2 ? equip2 / 36 : 0);
+    const cost = ext.at(i) * 0.31 + intCost.at(i);
+    const tax = ext.at(i) * 0.09;
+    const rev = ext.at(i) + intRev.at(i);
+    const contrib = rev - cost - tax - dep;
+    K.ext.push(ext.at(i)); K.int.push(intRev.at(i)); K.rev.push(rev); K.cost.push(cost); K.tax.push(tax);
+    K.dep.push(dep); K.contrib.push(contrib); K.fixed.push(fixed); K.profit.push(contrib - fixed);
+    K.capex.push(i === g2 ? equip2 : 0); K.ktv.push(ktv);
+  }
+
+  // ---------------- SECONDE ----------------
+  const dalat = p.seconde === 'dalat';
+  const sellRate = [0, 0, .30, .30, .30, .40, .40, .40, .50, .50, .50, .50];
+  const REAL = 860000, DRESS_COST = 85000 + 40000 + 20000 + 45000 + 5000 + 0.015 * REAL;
+  let kg = [0, 0, 1.4, 2.1, 2.9, 3.5, 3.9, 4.1, 4.5, 5.0, 5.4, 5.0];
+  const kgSum = sum(kg); kg = kg.map(x => x * 39803400 * F / kgSum);
+  const rtb = [0, 0, 0, 0, 0].concat(Array(7).fill(18513482 * F / 7));
+  const dlItems = (dalat ? [0, 0, 0, 20, 30, 40, 50, 60, 70, 80, 100, 110] : Array(12).fill(0)).map(x => x * F);
+  const DL_PRICE = 380000, DL_RATE = 0.35, DL_COST = 20000 + 15000 + 8000 + 0.03 * DL_PRICE + 0.07 * DL_RATE * DL_PRICE;
+  const sFixedBase = [0, 5000000, 1000000, 1000000, 4000000, 5000000, 5000000, 5000000, 6000000, 6000000, 6000000, 6000000];
+  const S = { in: [], sold: [], rev: [], revDress: [], revKg: [], revDl: [], cost: [], contrib: [], fixed: [], profit: [], dlItems: [] };
+  let stock = 0;
+  for (let i = 0; i < M; i++) {
+    let inflow = i >= 2 ? C.retired.at(i) : 0;
+    if (i === 2) inflow += C.retired.at(0) + C.retired.at(1);
+    stock += inflow;
+    const sold = stock * sellRate.at(i); stock -= sold;
+    const revDress = sold * REAL + rtb.at(i), revKg = kg.at(i), revDl = dlItems.at(i) * DL_PRICE * DL_RATE;
+    const rev = revDress + revKg + revDl;
+    const cost = sold * DRESS_COST + revKg * 0.25 + rtb.at(i) * 0.05 + dlItems.at(i) * DL_COST;
+    const fixed = sFixedBase.at(i) + (dalat && i >= 5 ? 2000000 : 0);
+    S.in.push(inflow); S.sold.push(sold); S.rev.push(rev); S.revDress.push(revDress); S.revKg.push(revKg); S.revDl.push(revDl);
+    S.cost.push(cost); S.contrib.push(rev - cost); S.fixed.push(fixed); S.profit.push(rev - cost - fixed); S.dlItems.push(dlItems.at(i));
+  }
+
+  // ---------------- KHỐI CHUNG ----------------
+  const sharedItems = [
+    ['Mặt bằng chung', Array(12).fill(14000000)],
+    ['Điện, nước, internet', Array(12).fill(5000000)],
+    ['Chủ tiệm', Array(12).fill(10000000)],
+    ['Quầy, CSKH', Array(12).fill(7000000)],
+    ['Nội dung chung', [3, 3, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6].map(x => x * 1000000)],
+    ['Kế toán, phần mềm, dự phòng', Array(12).fill(4000000)],
+  ];
+  const shared = Array.from({ length: M }, (_, i) => sum(sharedItems.map(s => s[1].at(i))));
+
+  // ---------------- HỢP NHẤT ----------------
+  const revExt = Array.from({ length: M }, (_, i) => C.rev.at(i) + O.rev.at(i) + K.ext.at(i) + S.rev.at(i));
+  const segProfit = Array.from({ length: M }, (_, i) => C.profit.at(i) + O.profit.at(i) + K.profit.at(i) + S.profit.at(i));
+  const net = segProfit.map((x, i) => x - shared.at(i));
+  const dep = Array.from({ length: M }, (_, i) => C.dep.at(i) + O.dep.at(i) + K.dep.at(i));
+  const capex = Array.from({ length: M }, (_, i) => C.capex.at(i) + O.capex.at(i) + K.capex.at(i));
+  const cash = net.map((x, i) => x + dep.at(i) - capex.at(i)
+    + (O.unearned.at(i) - (i ? O.unearned.at(i - 1) : 0)) + (O.deposit.at(i) - (i ? O.deposit.at(i - 1) : 0)));
+  let c = 0; const cum = cash.map(x => (c += x));
+  return { C, O, K, S, shared, sharedItems, revExt, segProfit, net, dep, capex, cash, cum,
+    params: { LIFE, NEW_COST, ARPU, equip1, equip2, g2 } };
+}
+if (typeof module !== 'undefined') module.exports = { cherieModel };
+
+(function(){
+const SEG = {
+  closet:{name:'Closet', key:'C', color:'var(--closet)', soft:'var(--closet-soft)'},
+  care:{name:'Care', key:'K', color:'var(--care)', soft:'var(--care-soft)'},
+  office:{name:'Office', key:'O', color:'var(--office)', soft:'var(--office-soft)'},
+  seconde:{name:'Seconde', key:'S', color:'var(--seconde)', soft:'var(--seconde-soft)'}
+};
+const TABS = [['tong','Tổng ChérieX','var(--ink)'],['closet','Closet','var(--closet)'],['care','Care','var(--care)'],['office','Office','var(--office)'],['seconde','Seconde','var(--seconde)']];
+const PHASES = [
+  ['nam','Cả năm 2027',0,11],['gd1','GĐ1 Khởi động · T1–T2',0,1],['gd2','GĐ2 Mở rộng · T3–T5',2,4],
+  ['gd3','GĐ3 Cao điểm · T6–T8',5,7],['gd4','GĐ4 Mùa mưa · T9–T12',8,11]];
+const MONTHS = Array.from({length:12},(_,i)=>'T'+(i+1));
+let state = {tab:'tong', phase:'nam'};
+try{ const ph = localStorage.getItem('cx-phase'); if(ph) state.phase = ph; }catch(e){}
+const h = location.hash.replace('#','');
+if (TABS.some(t=>t[0]===h)) state.tab = h;
+
+const $ = s => document.querySelector(s);
+const sum = a => a.reduce((s,x)=>s+x,0);
+const tr = x => {
+  const v = x/1e6, a = Math.abs(v);
+  if (a >= 1000) return (v/1000).toLocaleString('vi-VN',{minimumFractionDigits:2,maximumFractionDigits:2})+' tỷ';
+  return v.toLocaleString('vi-VN',{maximumFractionDigits:1, minimumFractionDigits: a<100?1:0})+' tr';
+};
+const sign = x => (x>0?'+':'') + tr(x);
+const cls = x => x<0?'neg':'pos';
+const num = x => Math.round(x).toLocaleString('vi-VN');
+function params(){ return { factor:+$('#s-factor').value, closet:$('#s-closet').value, care:$('#s-care').value, office:$('#s-office').value, seconde:$('#s-seconde').value }; }
+function range(){ const p = PHASES.find(x=>x[0]===state.phase)||PHASES[0]; return [p[2],p[3],p[1]]; }
+const slice = (a,[s,e]) => a.slice(s,e+1);
+
+// ---------- SVG helpers ----------
+function svgEl(w,hh,inner,label){ return `<svg viewBox="0 0 ${w} ${hh}" role="img" aria-label="${label}">${inner}</svg>`; }
+function niceMax(v){ const p = Math.pow(10,Math.floor(Math.log10(Math.max(v,1)))); return Math.ceil(v/p)*p; }
+function barChart({series, line, lineLabel, rng, label, height=270}){
+  // series: [{name,color,vals}] stacked; line: vals (profit) drawn as labels under bars
+  const W=680, L=52, R=12, T=14, B=line?78:40, Hh=height, plotH=Hh-T-B;
+  const tot = MONTHS.map((_,i)=>sum(series.map(s=>Math.max(0,s.vals[i]))));
+  const negs = MONTHS.map((_,i)=>sum(series.map(s=>Math.min(0,s.vals[i]))));
+  const top = niceMax(Math.max(...tot)/1e6)*1e6, bot = Math.min(0, Math.min(...negs));
+  const y = v => T + (top - v)/(top - bot)*plotH;
+  const band = (W-L-R)/12, x = i => L + band*i + band/2, bw = Math.min(30, band*0.58);
+  let g = '';
+  // phase highlight
+  if (!(rng[0]===0 && rng[1]===11)) g += `<rect x="${L+band*rng[0]}" y="${T-6}" width="${band*(rng[1]-rng[0]+1)}" height="${plotH+30}" fill="var(--tint)" rx="8"/>`;
+  const steps = 4; for(let k=0;k<=steps;k++){ const v = bot + (top-bot)*k/steps; g += `<line x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}" stroke="${Math.abs(v)<1?'var(--muted)':'var(--grid)'}" stroke-width="1"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">${Math.round(v/1e6)}</text>`; }
+  MONTHS.forEach((m,i)=>{
+    let up=0, dn=0;
+    series.forEach(s=>{ const v=s.vals[i]; if(v>=0){ g+=`<rect x="${x(i)-bw/2}" y="${y(up+v)}" width="${bw}" height="${Math.max(0,y(up)-y(up+v))}" fill="${s.color}"><title>${m} · ${s.name}: ${tr(v)}</title></rect>`; up+=v;} else { g+=`<rect x="${x(i)-bw/2}" y="${y(dn)}" width="${bw}" height="${Math.max(0,y(dn+v)-y(dn))}" fill="${s.color}" opacity=".55"><title>${m} · ${s.name}: ${tr(v)}</title></rect>`; dn+=v; } });
+    const inR = i>=rng[0]&&i<=rng[1];
+    if (up>0) g += `<text x="${x(i)}" y="${y(up)-6}" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="var(--f-mono)" opacity="${inR?1:.55}">${Math.round(up/1e6)}</text>`;
+    g += `<text x="${x(i)}" y="${T+plotH+18}" text-anchor="middle" font-size="11.5" fill="${inR?'var(--ink)':'var(--muted)'}" font-weight="${inR?600:400}">${m}</text>`;
+    if (line){ const v=line[i]; g += `<text x="${x(i)}" y="${T+plotH+52}" text-anchor="middle" font-size="11.5" font-weight="600" font-family="var(--f-mono)" fill="${v<0?'var(--bad)':'var(--good)'}" opacity="${inR?1:.5}">${Math.round(v/1e6)}<title>${m}: ${lineLabel} ${tr(v)}</title></text>`; }
+  });
+  if (line){ g += `<line x1="${L}" x2="${W-R}" y1="${T+plotH+30}" y2="${T+plotH+30}" stroke="var(--grid)"/><text x="4" y="${T+plotH+52}" font-size="11" fill="var(--muted)">${lineLabel}</text>`; }
+  return svgEl(W,Hh,g,label);
+}
+function cashChart(cum, rng){
+  const W=680,L=52,R=12,T=24,B=34,Hh=230,plotH=Hh-T-B;
+  const lo = Math.min(0,...cum), hi = Math.max(0,...cum);
+  const pad = (hi-lo)*0.12 || 1e7, top=hi+pad, bot=lo-pad;
+  const y=v=>T+(top-v)/(top-bot)*plotH, band=(W-L-R)/12, x=i=>L+band*i+band/2;
+  let g='';
+  if (!(rng[0]===0 && rng[1]===11)) g += `<rect x="${L+band*rng[0]}" y="${T-10}" width="${band*(rng[1]-rng[0]+1)}" height="${plotH+20}" fill="var(--tint)" rx="8"/>`;
+  g += `<line x1="${L}" x2="${W-R}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)"/><text x="${L-8}" y="${y(0)+4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--f-mono)">0</text>`;
+  const pts = cum.map((v,i)=>`${x(i)},${y(v)}`).join(' ');
+  g += `<polygon points="${x(0)},${y(0)} ${pts} ${x(11)},${y(0)}" fill="var(--bad)" opacity=".08"/>`;
+  g += `<polyline points="${pts}" fill="none" stroke="var(--ink)" stroke-width="2"/>`;
+  cum.forEach((v,i)=>{ g+=`<circle cx="${x(i)}" cy="${y(v)}" r="3.2" fill="var(--ink)"><title>${MONTHS[i]}: cộng dồn ${tr(v)}</title></circle><text x="${x(i)}" y="${Hh-8}" text-anchor="middle" font-size="11.5" fill="var(--muted)">${MONTHS[i]}</text>`; });
+  const mi = cum.indexOf(Math.min(...cum));
+  g += `<text x="${x(mi)}" y="${y(cum[mi])+18}" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)">Đáy ${tr(cum[mi])}</text>`;
+  g += `<text x="${W-R}" y="${Math.max(14,y(cum[11])-10)}" text-anchor="end" font-size="12" font-weight="600" fill="var(--ink)">Cuối năm ${tr(cum[11])}</text>`;
+  return svgEl(W,Hh,g,'Tiền mặt cộng dồn theo tháng');
+}
+
+// ---------- shared computations ----------
+function segRows(m, r){
+  const rev = {closet:sum(slice(m.C.rev,r)), office:sum(slice(m.O.rev,r)), care:sum(slice(m.K.ext,r)), seconde:sum(slice(m.S.rev,r))};
+  const prof = {closet:sum(slice(m.C.profit,r)), office:sum(slice(m.O.profit,r)), care:sum(slice(m.K.profit,r)), seconde:sum(slice(m.S.profit,r))};
+  const sh = sum(slice(m.shared,r)), tot = sum(Object.values(rev));
+  const alloc = {}; Object.keys(rev).forEach(k=>alloc[k] = tot? sh*rev[k]/tot : 0);
+  return {rev, prof, alloc, sh, tot};
+}
+function kpi(lab,val,note,cl){ return `<div class="kpi"><div class="lab">${lab}</div><div class="val ${cl||''}">${val}</div>${note?`<div class="note">${note}</div>`:''}</div>`; }
+
+// ---------- views ----------
+function viewTong(m, r, pname){
+  const s = segRows(m,r), net = sum(slice(m.net,r)), capex = sum(slice(m.capex,r));
+  const cumR = slice(m.cum,r), low = Math.min(...m.cum), lowR = Math.min(...cumR);
+  const firstProfit = m.net.findIndex((v,i)=> m.net.slice(i).every(x=>x>0));
+  const yearNet = sum(m.net);
+  let html = `<h1>${pname}: ${net>=0?'tổ hợp lãi':'tổ hợp lỗ'} ${tr(Math.abs(net))}</h1>
+  <p class="lead">Doanh thu từ khách ${tr(s.tot)} · chi phí chung ${tr(s.sh)} · tiền bỏ vào đồ và máy ${tr(capex)}.</p>`;
+  html += yearNet<0
+    ? `<div class="banner bad">Cả năm 2027 lỗ ${tr(-yearNet)} và cần thêm khoảng ${tr(-low)} tiền mặt ở đáy. ${worstSeg(m)}</div>`
+    : `<div class="banner good">Cả năm 2027 lãi ${tr(yearNet)}${firstProfit>=0?`, có lãi đều từ ${MONTHS[firstProfit]}`:''}. Vốn lưu động cần ở đáy: ${tr(-low)}.</div>`;
+  html += `<div class="kpis">${kpi('Doanh thu từ khách',tr(s.tot),pname)}${kpi('Lãi ròng tổ hợp',sign(net),'sau chi phí chung',cls(net))}${kpi('Tiền mặt thấp nhất',tr(lowR),'cộng dồn từ 1/1/2027',cls(lowR))}${kpi('Tiền bỏ vào đồ, máy',tr(capex),'đầm, tủ Office, máy Care')}</div>`;
+  html += `<h2>Doanh thu theo mảng và lãi từng tháng</h2><div class="panel"><div class="legend">${Object.values(SEG).map(g=>`<span><i style="background:${g.color}"></i>${g.name}${g.key==='K'?' (khách ngoài)':''}</span>`).join('')}</div>
+    <div class="chart">${barChart({series:[{name:'Closet',color:'var(--closet)',vals:m.C.rev},{name:'Care',color:'var(--care)',vals:m.K.ext},{name:'Office',color:'var(--office)',vals:m.O.rev},{name:'Seconde',color:'var(--seconde)',vals:m.S.rev}], line:m.net, lineLabel:'Lãi ròng', rng:r, label:'Doanh thu theo mảng và lãi ròng tổ hợp mỗi tháng, triệu đồng'})}</div></div>`;
+  html += `<h2>Mỗi mảng đóng góp bao nhiêu</h2><div class="panel tbl"><table><thead><tr><th>Mảng</th><th>Doanh thu</th><th>Lãi mảng</th><th>Chi phí chung</th><th>Lãi sau</th></tr></thead><tbody>`;
+  Object.entries(SEG).forEach(([k,g])=>{ const after = s.prof[k]-s.alloc[k]; html += `<tr><td><span class="dot" style="background:${g.color}"></span>${g.name}</td><td>${tr(s.rev[k])}</td><td class="${cls(s.prof[k])}">${sign(s.prof[k])}</td><td>${tr(s.alloc[k])}</td><td class="${cls(after)}">${sign(after)}</td></tr>`; });
+  html += `<tr class="total"><td>ChérieX</td><td>${tr(s.tot)}</td><td>${sign(sum(Object.values(s.prof)))}</td><td>${tr(s.sh)}</td><td class="${cls(net)}">${sign(net)}</td></tr></tbody></table></div>
+  <p class="lead" style="margin-top:8px;font-size:13px">Chi phí chung chia theo doanh thu. Không tính ${tr(sum(slice(m.K.int,r)))} Care làm cho các mảng khác vì là tiền chuyển nội bộ.</p>`;
+  html += `<h2>Tiền mặt cộng dồn</h2><div class="panel"><div class="chart">${cashChart(m.cum,r)}</div></div>`;
+  html += `<h2>Chi phí chung mỗi tháng</h2><div class="panel tbl"><table><tbody>${m.sharedItems.map(([n,v])=>`<tr><td>${n}</td><td>${tr(sum(slice(v,r)))}</td></tr>`).join('')}<tr class="total"><td>Cộng</td><td>${tr(s.sh)}</td></tr></tbody></table></div>`;
+  return html;
+}
+function worstSeg(m){
+  const p = {Closet:sum(m.C.profit), Office:sum(m.O.profit), Care:sum(m.K.profit), Seconde:sum(m.S.profit)};
+  const w = Object.entries(p).sort((a,b)=>a[1]-b[1])[0];
+  return w[1]<0 ? `Mảng kéo xuống nhiều nhất: ${w[0]} (${sign(w[1])} trước chi phí chung).` : '';
+}
+function segHead(name, color, r, pname, revArr, profArr){
+  const rev = sum(slice(revArr,r)), prof = sum(slice(profArr,r));
+  return `<h1 style="color:${color}">${name} · ${pname}</h1><p class="lead">Doanh thu ${tr(rev)}, lãi mảng ${sign(prof)} trước chi phí chung.</p>`;
+}
+function pl(rows){ return `<div class="panel tbl"><table><tbody>${rows.map(([n,v,b])=>`<tr class="${b?'total':''}"><td>${n}</td><td class="${b?cls(v):''}">${b?sign(v):tr(v)}</td></tr>`).join('')}</tbody></table></div>`; }
+
+function viewCloset(m,r,pname,p){
+  const C=m.C, g=SEG.closet;
+  const rent = sum(slice(C.rentals,r)), depPer = sum(slice(C.dep,r))/Math.max(1,rent);
+  const alt = cherieModel({...p, closet: p.closet==='cu'?'dx':'cu'});
+  const me = sum(slice(C.profit,r)), other = sum(slice(alt.C.profit,r));
+  const meY = sum(C.profit), otherY = sum(alt.C.profit);
+  const cu = p.closet==='cu';
+  let html = segHead('Closet', g.color, r, pname, C.rev, C.profit);
+  html += `<div class="kpis">${kpi('Lượt thuê',num(rent),'đầm 24 giờ')}${kpi('Kho đầm cuối kỳ',num(C.kho[r[1]]),'chưa gồm đầm ký gửi')}${kpi('Khấu hao mỗi lượt',tr(depPer).replace(' tr',' tr'), cu?'đầm 3,68 tr chia 9 lượt':'đầm 1,3 tr chia 15 lượt')}${kpi('Tiền mua đầm',tr(sum(slice(C.capex,r))),'để giữ kho theo kế hoạch')}</div>`;
+  html += `<h2>Điều quyết định Closet lãi hay lỗ</h2><div class="panel" style="--sc:${g.color};--soft:${g.soft}">
+   <p style="margin:0">Giữ nguyên cách cho thuê 24 giờ, giá và dịch vụ. Chỉ khác ở <b>giá mua mỗi đầm</b> và <b>số lượt cho thuê trước khi bán lại</b>. Mỗi lượt thu khoảng 479k (420k tiền thuê + phí giao, Gói Yên tâm); trừ Care, giao nhận, thuế còn khoảng 340k. Một đầm 3,68 tr cho thuê 9 lượt tốn 409k khấu hao mỗi lượt, nên mỗi lượt gần như làm không công.</p>
+   <div class="compare"><div class="cmp ${cu?'on':''}"><div class="t">Mô hình cũ · cả năm</div><div class="v ${cls(cu?meY:otherY)}">${sign(cu?meY:otherY)}</div></div><div class="cmp ${cu?'':'on'}"><div class="t">Mua thông minh · cả năm</div><div class="v ${cls(cu?otherY:meY)}">${sign(cu?otherY:meY)}</div></div></div>
+   <p class="lead" style="margin:8px 0 0;font-size:13px">Lãi mảng Closet trước chi phí chung. Mua thông minh: mẫu mới ≤ 1,3 tr (mua lúc sale, hàng thiết kế giá nhập thấp, hoặc nhận ký gửi cho thuê), đầm còn đẹp cho thuê tới 15 lượt.</p></div>`;
+  html += `<h2>Theo tháng</h2><div class="panel"><div class="chart">${barChart({series:[{name:'Doanh thu',color:g.color,vals:C.rev}], line:C.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Closet mỗi tháng'})}</div></div>`;
+  html += `<h2>Lãi lỗ ${pname.toLowerCase()}</h2>` + pl([['Doanh thu',sum(slice(C.rev,r))],['Care nội bộ, giao nhận, chia ký gửi',sum(slice(C.cost,r))],['Thuế cho thuê (10%)',sum(slice(C.tax,r))],['Khấu hao đầm',sum(slice(C.dep,r))],['Stylist, marketing',sum(slice(C.fixed,r))],['Lãi mảng',sum(slice(C.profit,r)),1]]);
+  html += `<h2>Cách vận hành</h2><div class="panel ops" style="--sc:${g.color}"><div class="op"><ol class="steps"><li>Khách tới từ TikTok, Instagram, Google Maps, lễ tân khách sạn và thợ chụp.</li><li>Stylist tư vấn qua Zalo, gửi 3–5 mẫu, kiểm lịch đồ.</li><li>Ký hợp đồng điện tử, thu tiền thuê và cọc; mời Gói Yên tâm.</li><li>Care chuẩn bị, giao tận khách sạn hoặc nhà.</li><li>Nhận lại, kiểm 4 ảnh, hoàn cọc ngay; Care giặt rồi trả về kho.</li><li>Đủ lượt hoặc lỗi mốt thì chuyển Seconde.</li></ol></div></div>`;
+  return html;
+}
+function viewCare(m,r,pname,p){
+  const K=m.K, g=SEG.care, lean = p.care==='gon';
+  const ext = sum(slice(K.ext,r)), intr = sum(slice(K.int,r));
+  let html = segHead('Care', g.color, r, pname, K.rev, K.profit);
+  html += `<div class="kpis">${kpi('Khách ngoài',tr(ext),'tiền mới vào tổ hợp')}${kpi('Làm nội bộ',tr(intr),'đầm Closet, đồ Office, Seconde')}${kpi('Kỹ thuật viên',K.ktv[r[1]]+' người','cuối kỳ')}${kpi('Tiền máy',lean?'40 tr + 24 tr':'77 tr + 35 tr',lean?'bước 1 + bước 2 (T7)':'giai đoạn 1 + 2 (T6)')}</div>`;
+  html += `<h2>Theo tháng</h2><div class="panel"><div class="legend"><span><i style="background:var(--care)"></i>Khách ngoài</span><span><i style="background:var(--care-soft);outline:1px solid var(--care)"></i>Nội bộ</span></div><div class="chart">${barChart({series:[{name:'Khách ngoài',color:'var(--care)',vals:K.ext},{name:'Nội bộ',color:'var(--care-soft)',vals:K.int}], line:K.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Care mỗi tháng'})}</div></div>`;
+  html += `<h2>Lãi lỗ ${pname.toLowerCase()}</h2>` + pl([['Doanh thu (ngoài + nội bộ)',sum(slice(K.rev,r))],['Xưởng giặt khô, vật tư, chia thợ may',sum(slice(K.cost,r))],['Thuế dịch vụ (7%) và dự phòng đền bù (2%)',sum(slice(K.tax,r))],['Khấu hao máy',sum(slice(K.dep,r))],['Kỹ thuật viên, marketing, phần mềm',sum(slice(K.fixed,r))],['Lãi mảng',sum(slice(K.profit,r)),1]]);
+  html += `<h2>Kế hoạch Care gọn</h2><div class="panel ops" style="--sc:${g.color}">
+   <div class="op"><h3>Bước 1 · từ 12/2026 · khoảng 40 tr</h3><ul class="plain"><li>1 máy giặt cửa trước 12 kg có chế độ đồ mỏng, len (~10–14 tr) [GĐ]</li><li>1 máy sấy bơm nhiệt 10 kg (~11,6 tr), sấy nhiệt thấp, không làm co đồ</li><li>1 bàn ủi hơi nước đứng công nghiệp (~4,9 tr) và 1 bàn ủi bình treo (~1,3–2,7 tr)</li><li>Kệ, móc, túi bọc, đèn kiểm đồ (~8 tr)</li><li>Giặt khô, váy cưới, đồ đính kết: gửi xưởng đối tác, Care kiểm và hấp lại</li></ul></div>
+   <div class="op"><h3>Gói nên bán trước (hợp với 3 máy)</h3><ul class="plain"><li><b>Hấp lấy liền</b> 55k/món, lấy trong 60 phút: chi phí vật tư ~4k, lãi cao nhất</li><li><b>Sẵn sàng đi tiệc</b> 250k/bộ: hấp, chỉnh, sửa nhỏ, giao khách sạn</li><li><b>Giá sỉ cho tiệm cho thuê</b> áo dài, đầm, studio: 40k/món, đều việc</li><li><b>Thẻ Care</b> nạp 1 tr dùng 1,1 tr: có tiền trước</li><li><b>Gói đồ sơ sinh</b> cho mẹ dùng Office [đề xuất mới]: giặt riêng từng nhà, sấy nhiệt, giao chung tuyến Office</li></ul></div>
+   <div class="op"><h3>Khi nào đầu tư thêm</h3><div class="gate"><b>Bước 2</b><span>Kỹ thuật viên dùng trên 75% công suất (~825 món chuẩn/tháng) 2 tháng liền, hoặc khách ngoài từ 45 tr/tháng 2 tháng liền → thêm 1 bộ giặt + sấy (~24 tr), tự làm phần lớn đồ thay vì gửi xưởng. Dự kiến T7.</span><b>Người</b><span>Kỹ thuật viên thứ 2 khi người thứ nhất kín việc, dự kiến T5.</span><b>Bước 3</b><span>Khách ngoài từ 90 tr/tháng và gửi xưởng giặt khô trên 300 món/tháng → xin báo giá máy giặt chuyên dụng, tính riêng.</span></div></div></div>`;
+  return html;
+}
+function viewOffice(m,r,pname,p){
+  const O=m.O, g=SEG.office, me = p.office==='me';
+  let html = segHead('Office', g.color, r, pname, O.rev, O.profit);
+  html += `<div class="kpis">${kpi('Khách đang dùng',num(O.active[r[1]]),'cuối kỳ')}${kpi('Tiền mua tủ đồ',tr(sum(slice(O.capex,r))),'chỉ mua khi khách đã trả trước')}${kpi('Tiền khách trả trước đang giữ',tr(O.unearned[r[1]]+O.deposit[r[1]]),'gồm cọc 1 tr/khách')}${kpi('Doanh thu mỗi khách',me?'~1,6 tr/tháng':'~1,75 tr/tháng','đã giảm 7% trả trước')}</div>`;
+  html += `<h2>Theo tháng</h2><div class="panel"><div class="chart">${barChart({series:[{name:'Doanh thu',color:g.color,vals:O.rev}], line:O.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Office mỗi tháng'})}</div></div>`;
+  html += `<h2>Lãi lỗ ${pname.toLowerCase()}</h2>` + pl([['Doanh thu',sum(slice(O.rev,r))],['Care nội bộ, giao nhận, stylist khoán',sum(slice(O.cost,r))],['Thuế cho thuê (10%)',sum(slice(O.tax,r))],['Khấu hao tủ đồ (18 tháng)',sum(slice(O.dep,r))],['Marketing, công cụ',sum(slice(O.fixed,r))],['Lãi mảng',sum(slice(O.profit,r)),1]]);
+  html += `<h2>Tập trung Mẹ bầu & Sau sinh</h2><div class="panel ops" style="--sc:${g.color}">
+   <div class="op"><p>Một dòng, một khách hàng rõ: mẹ đi làm từ tháng thứ 4 thai kỳ đến khi đi làm lại sau sinh. Tủ đồ dùng chung giữa các mẹ ở giai đoạn khác nhau nên tiền mua đồ tăng chậm hơn số khách.</p></div>
+   <div class="op"><h3>Gói</h3><ul class="plain"><li>10 bộ 389k/tuần, 5 bộ 349k/tuần; trả trước 12 tuần giảm 7%, cọc 1 tr</li><li>Mỗi tuần 2 ngày đầm, 3 bộ áo phối quần hoặc chân váy cạp chun</li><li>Nghỉ thai sản thì tạm dừng; stylist đổi sang đồ cho con bú, không đăng ký lại</li></ul></div>
+   <div class="op"><h3>Mục tiêu 2027 [GĐ]</h3><ul class="plain"><li>4 mẹ sáng lập T3, 22 mẹ cuối năm (khoảng 14% của ~159 mẹ tiềm năng Office đã ước tính)</li><li>Marketing 3,5 tr/tháng, chủ yếu nhóm mẹ bầu, bệnh viện sản, HR công ty</li><li>Bán chéo: Care giặt đồ sơ sinh, Closet đầm đầy tháng, thôi nôi</li></ul></div></div>`;
+  return html;
+}
+function viewSeconde(m,r,pname,p){
+  const S=m.S, g=SEG.seconde, dl = p.seconde==='dalat';
+  let html = segHead('Seconde', g.color, r, pname, S.rev, S.profit);
+  html += `<div class="kpis">${kpi('Đầm Closet bán lại',num(sum(slice(S.sold,r))),'chiếc')}${kpi('Món Đà Lạt bán',num(sum(slice(S.dlItems,r))),dl?'ký gửi B2B':'chưa bật')}${kpi('Hoa hồng ký gửi lẻ',tr(sum(slice(S.revKg,r))),'30/25/20%')}${kpi('Từ Đà Lạt',tr(sum(slice(S.revDl,r))),'phần tiệm giữ 35%')}</div>`;
+  html += `<h2>Theo tháng</h2><div class="panel"><div class="legend"><span><i style="background:var(--seconde)"></i>Đầm Chérie, thuê rồi mua</span><span><i style="background:var(--brass)"></i>Ký gửi lẻ</span><span><i style="background:var(--seconde-soft);outline:1px solid var(--seconde)"></i>Đà Lạt</span></div><div class="chart">${barChart({series:[{name:'Đầm Chérie',color:'var(--seconde)',vals:S.revDress},{name:'Ký gửi lẻ',color:'var(--brass)',vals:S.revKg},{name:'Đà Lạt',color:'var(--seconde-soft)',vals:S.revDl}], line:S.profit, lineLabel:'Lãi mảng', rng:r, label:'Doanh thu và lãi Seconde mỗi tháng'})}</div></div>`;
+  html += `<h2>Lãi lỗ ${pname.toLowerCase()}</h2>` + pl([['Doanh thu phần tiệm hưởng',sum(slice(S.rev,r))],['Phí sàn, ship, ảnh, làm sạch, thuế',sum(slice(S.cost,r))],['CTV chụp ảnh, marketing',sum(slice(S.fixed,r))],['Lãi mảng',sum(slice(S.profit,r)),1]]);
+  html += `<h2>Seconde · Phố Núi: hợp tác Đà Lạt</h2><div class="panel ops" style="--sc:${g.color}">
+   <div class="op"><p>Tuyển chọn đồ nữ 2hand từ đối tác Đà Lạt, qua Care làm sạch, chụp ảnh chuẩn CHÉRIE, bán online toàn quốc. Hàng hợp nhất là áo khoác dạ, len, blazer, đầm dài: bán mạnh cho khách phía Bắc mùa lạnh T10–T2.</p></div>
+   <div class="op"><h3>3 cách hợp tác, làm theo thứ tự</h3><ol class="steps"><li><b>Ký gửi B2B</b> (bắt đầu T4): đối tác gửi lô 30–50 món đã chọn, vẫn là chủ hàng; CHÉRIE giữ 35% giá bán, treo tối đa 60 ngày rồi giảm giá hoặc trả lại. Không tốn vốn mua.</li><li><b>Mua đứt chọn lọc</b>: chỉ khi một đối tác bán được trên 50% lô trong 30 ngày; ngân sách tối đa 5–10 tr/tháng.</li><li><b>Drop chung</b> "CHÉRIE Seconde × tên shop" mỗi tối thứ 6, livestream dẫn về 2hand.cherie.io.vn.</li></ol></div>
+   <div class="op"><h3>Kinh tế một món [GĐ]</h3><p class="muted">Giá bán bình quân 380k → tiệm giữ 133k; trừ hấp kiểm 20k, ảnh 15k, vận chuyển Đà Lạt–Đà Nẵng 8k, phí thanh toán 3%, thuế 7% hoa hồng → còn khoảng 70k/món. 560 món năm 2027 ≈ 39 tr lãi góp, thêm CTV 2 tr/tháng từ T6.</p></div>
+   <div class="op" style="--sc:var(--bad)"><h3>Điều kiện bắt buộc về nguồn hàng</h3><p class="muted">Quần áo đã qua sử dụng nhập khẩu thuộc danh mục cấm nhập (Nghị định 69/2018); bán hàng loại này có thể bị phạt và tịch thu. Nhiều shop "đồ si" Đà Lạt bán hàng thùng nhập. Chỉ nhận món có nguồn trong nước: đồ ký gửi của người dùng Việt Nam, hàng tồn, hàng mẫu của thương hiệu Việt; đối tác cam kết nguồn gốc bằng văn bản trong hợp đồng ủy thác.</p></div>
+   <div class="op"><h3>Đối tác để liên hệ thử [chưa kiểm chứng]</h3><ul class="plain"><li>DaLat Secondhand, 138 Phan Đình Phùng: có nhận ký gửi quần áo cũ</li><li>Thương hiệu thời trang local ở Đà Lạt: hỏi hàng tồn, hàng mẫu cuối mùa</li><li>Các shop vintage nữ có nguồn ký gửi trong nước; hỏi rõ nguồn trước khi nhận lô</li></ul></div></div>`;
+  return html;
+}
+
+// ---------- render ----------
+function render(){
+  const p = params(), m = cherieModel(p), [s,e,pname] = range(), r=[s,e];
+  $('#scen-sum').textContent = '· ' + [$('#s-factor').selectedOptions[0].text.split(' (')[0], p.closet==='cu'?'Closet cũ':'Closet mua thông minh', p.care==='gon'?'Care gọn':'Care đầy đủ', p.office==='me'?'Office chỉ Mẹ':'Office 6 dòng', p.seconde==='dalat'?'có Đà Lạt':'không Đà Lạt'].join(' · ');
+  const v = {tong:viewTong, closet:viewCloset, care:viewCare, office:viewOffice, seconde:viewSeconde}[state.tab];
+  $('#view').innerHTML = v(m, r, pname, p);
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected', b.dataset.t===state.tab));
+  document.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed', b.dataset.p===state.phase));
+}
+$('#tabs').innerHTML = TABS.map(([k,n,c])=>`<button class="tab" role="tab" data-t="${k}" style="--tc:${c}">${n}</button>`).join('');
+$('#chips').innerHTML = PHASES.map(([k,n])=>`<button class="chip" data-p="${k}">${n}</button>`).join('');
+$('#tabs').addEventListener('click', ev=>{ const b=ev.target.closest('.tab'); if(!b) return; state.tab=b.dataset.t; history.replaceState(null,'','#'+state.tab); render(); window.scrollTo({top:0}); });
+$('#chips').addEventListener('click', ev=>{ const b=ev.target.closest('.chip'); if(!b) return; state.phase=b.dataset.p; try{localStorage.setItem('cx-phase',state.phase);}catch(e){} render(); });
+document.querySelectorAll('.scen select').forEach(el=>el.addEventListener('change', render));
+window.addEventListener('hashchange', ()=>{ const t=location.hash.replace('#',''); if(TABS.some(x=>x[0]===t)){ state.tab=t; render(); } });
+render();
+})();
+</script>
+
+</body>
+</html>
