@@ -98,7 +98,8 @@ function cherieModel(p) {
     const ktv = i < 4 ? 1 : 2;
     const fixed = ktv * 8500000 + (i < 3 ? 8000000 : 6000000) + 500000;
     const dep = equip1 / 36 + (i >= g2 ? equip2 / 36 : 0);
-    const cost = ext.at(i) * 0.31 + intCost.at(i);
+    const b2bComm = (p.careUp || 0) > 0 ? (ext.at(i) - ext.at(i) / (1 + p.careUp)) * 0.10 : 0;   // hoa hồng 10% cho phần khách DN tăng thêm
+    const cost = ext.at(i) * 0.31 + intCost.at(i) + b2bComm;
     const tax = ext.at(i) * 0.09;
     const rev = ext.at(i) + intRev.at(i);
     const contrib = rev - cost - tax - dep;
@@ -143,6 +144,7 @@ function cherieModel(p) {
     ['Quầy, CSKH', Array(12).fill(7000000)],
     ['Nội dung chung', [3, 3, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6].map(x => x * 1000000)],
     ['Kế toán, phần mềm, dự phòng', Array(12).fill(4000000)],
+    ['Sale B2B, đối tác (lương cứng)', Array.from({ length: 12 }, (_, i) => ((p.careUp || 0) > 0 && i >= 1 ? 4000000 : 0))],
   ];
   const shared = Array.from({ length: M }, (_, i) => sum(sharedItems.map(s => s[1].at(i))));
 

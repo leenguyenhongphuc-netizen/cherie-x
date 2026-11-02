@@ -264,7 +264,8 @@ function cherieModel(p) {
     const ktv = i < 4 ? 1 : 2;
     const fixed = ktv * 8500000 + (i < 3 ? 8000000 : 6000000) + 500000;
     const dep = equip1 / 36 + (i >= g2 ? equip2 / 36 : 0);
-    const cost = ext.at(i) * 0.31 + intCost.at(i);
+    const b2bComm = (p.careUp || 0) > 0 ? (ext.at(i) - ext.at(i) / (1 + p.careUp)) * 0.10 : 0;   // hoa hồng 10% cho phần khách DN tăng thêm
+    const cost = ext.at(i) * 0.31 + intCost.at(i) + b2bComm;
     const tax = ext.at(i) * 0.09;
     const rev = ext.at(i) + intRev.at(i);
     const contrib = rev - cost - tax - dep;
@@ -309,6 +310,7 @@ function cherieModel(p) {
     ['Quầy, CSKH', Array(12).fill(7000000)],
     ['Nội dung chung', [3, 3, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6].map(x => x * 1000000)],
     ['Kế toán, phần mềm, dự phòng', Array(12).fill(4000000)],
+    ['Sale B2B, đối tác (lương cứng)', Array.from({ length: 12 }, (_, i) => ((p.careUp || 0) > 0 && i >= 1 ? 4000000 : 0))],
   ];
   const shared = Array.from({ length: M }, (_, i) => sum(sharedItems.map(s => s[1].at(i))));
 
@@ -362,7 +364,7 @@ function presetOf(){ for (const [k,v] of Object.entries(PRESETS)) if (Object.ent
 const LEVERS = [
   ['Closet mua thông minh thay mô hình cũ', p=>p.closet==='dx', p=>({...p, closet: p.closet==='dx'?'cu':'dx'})],
   ['Tăng giá thuê Closet 10%', p=>p.priceUp>0, p=>({...p, priceUp: p.priceUp>0?0:0.1})],
-  ['Care ký thêm khách doanh nghiệp (+15%)', p=>p.careUp>0, p=>({...p, careUp: p.careUp>0?0:0.15})],
+  ['Thuê sale B2B, Care ký thêm khách doanh nghiệp (+15%)', p=>p.careUp>0, p=>({...p, careUp: p.careUp>0?0:0.15})],
   ['Nhận gấp đôi đầm ký gửi cho thuê', p=>p.kgx>1, p=>({...p, kgx: p.kgx>1?1:2})],
   ['Mặt bằng chung 12 tr thay 14 tr', p=>p.rentx<1, p=>({...p, rentx: p.rentx<1?1:0.857142857})],
   ['Office dùng đầm TIATI MOM của RẬP', p=>p.office==='me-rap', p=>({...p, office: p.office==='me-rap'?'me':'me-rap'})],
@@ -520,6 +522,8 @@ const PEOPLE = [
   ['chung','giao','Giao nhận','Tối T6 lấy đồ Office, CN giao nhà, T2 giao văn phòng; đầm Closet ghép chuyến',5,6500000,'khoán → cố định'],
   ['chung','noidung','Nội dung, mạng xã hội','Video, bài đăng cho cả 4 mảng theo mùa',0,6000000,'CTV'],
   ['chung','ketoan','Kế toán','Thuế hộ kinh doanh, sổ sách, hóa đơn điện tử',-1,1500000,'thuê ngoài'],
+  ['chung','b2b','Sale B2B, đối tác','Tìm và giữ khách doanh nghiệp cho cả 4 mảng; 4 tr cứng + hoa hồng 10%',1,4000000,'bán thời gian'],
+  ['chung','thumua','Trợ lý thu mua','Nhập kho, kiểm hàng, chụp tình trạng; quầy kiêm trong 2027',99,0,'quầy kiêm'],
   ['closet','closet','Stylist Closet','Tư vấn Zalo, mang đồ thử tận khách sạn; T1–T4 chủ tiệm kiêm',4,7000000,'cố định'],
   ['care','care','Kỹ thuật viên 1','Giặt, hấp, kiểm đồ ~1.100 món chuẩn/tháng',-1,8500000,'cố định'],
   ['care','care','Kỹ thuật viên 2','Tuyển khi người 1 dùng trên 75% công suất 2 tháng liền',4,8500000,'cố định'],
@@ -532,7 +536,7 @@ function viewNhanSu(m,r,pname,p){
   const active = PEOPLE.filter(on), fixed = active.filter(x=>x[6]==='cố định' || x[6]==='khoán → cố định');
   const cost = active.reduce((s,x)=>s+x[5],0) + 10000000;
   const stylistOffice = (m.O.active[end]||0) * 200000;
-  const mon = i => i < 0 ? '12/26' : 'T'+(i+1);
+  const mon = i => i < 0 ? '12/26' : i > 11 ? '2028' : 'T'+(i+1);
   const person = x => `<div class="person ${on(x)?'':'off'}"><div class="pr">${x[2]}<small>${x[3]}</small></div><span class="pill ${on(x)?'on':''}">${on(x)?'đang có':'từ '+mon(x[4])}</span></div>`;
   const unit = (key, name, color) => `<div class="unit" style="--uc:${color}"><div class="un">${name}</div>${PEOPLE.filter(x=>x[1]===key).map(person).join('')}</div>`;
   const segUnit = (key, name, color, extra) => `<div class="unit" style="--uc:${color}"><div class="un">${name}</div>${extra||''}${PEOPLE.filter(x=>x[0]===key).map(person).join('')}</div>`;
@@ -542,7 +546,7 @@ function viewNhanSu(m,r,pname,p){
   html += `<h2>Sơ đồ tổ chức</h2><div class="org">
     <div class="org-owner"><div class="role">Chủ tiệm · Giám đốc tổ hợp</div><div class="who">Mua hàng, giá, tài chính, thương hiệu, đối tác (RẬP, Đà Lạt, khách doanh nghiệp Care)</div></div>
     <div class="stem"></div>
-    <div class="org-block"><div class="bt">Dùng chung · cả 4 mảng</div><div class="org-grid">${unit('quay','Quầy','var(--ink)')}${unit('giao','Giao nhận','var(--ink)')}${unit('noidung','Nội dung','var(--ink)')}${unit('ketoan','Kế toán','var(--ink)')}</div></div>
+    <div class="org-block"><div class="bt">Dùng chung · cả 4 mảng</div><div class="org-grid">${unit('quay','Quầy','var(--ink)')}${unit('giao','Giao nhận','var(--ink)')}${unit('b2b','Sale B2B','var(--brass)')}<div class="unit" style="--uc:var(--brass)"><div class="un">Thu mua</div>${ownerLine('Mua đầm, tủ Office, vật tư Care, lô Đà Lạt theo luật mua')}${PEOPLE.filter(x=>x[1]==='thumua').map(person).join('')}</div>${unit('noidung','Nội dung','var(--ink)')}${unit('ketoan','Kế toán','var(--ink)')}</div></div>
     <div class="stem"></div>
     <div class="org-block"><div class="bt">Dùng riêng · từng mảng</div><div class="org-grid">
       ${segUnit('closet','Closet','var(--closet)', ownerLine('Duyệt mẫu nhập, giá thuê; tư vấn T1–T4'))}
@@ -550,8 +554,16 @@ function viewNhanSu(m,r,pname,p){
       ${segUnit('office','Office · Mẹ bầu & Sau sinh','var(--office)', ownerLine('Điều hành, chọn đồ TIATI MOM; lương cứng khi trên 45 khách'))}
       ${segUnit('seconde','Seconde','var(--seconde)', ownerLine('Duyệt giá, ký hợp đồng ủy thác với đối tác Đà Lạt'))}
     </div></div></div>`;
+  html += `<h2>Sale B2B: ai đi tìm khách doanh nghiệp</h2><div class="panel ops" style="--sc:var(--brass)">
+   <div class="op"><p>Một người bán thời gian từ T2, lương cứng 4 tr và hoa hồng 10% trên doanh thu khách doanh nghiệp mang về. Làm cho cả 4 mảng, mỗi mảng một danh sách mục tiêu:</p>
+   <ul class="plain"><li><b>Care</b>: 5–10 tiệm cho thuê áo dài, đầm, studio; 10 khách sạn nhỏ, homestay (hấp đồ cho khách lưu trú)</li><li><b>Closet</b>: lễ tân, concierge 10+ khách sạn ven biển; wedding planner; thợ chụp (hoa hồng 2 chiều)</li><li><b>Office</b>: phòng nhân sự công ty có nhiều nữ (ngân hàng, FDI, bất động sản) để giới thiệu gói Mẹ bầu</li><li><b>Seconde</b>: 3–5 đối tác Đà Lạt có nguồn hàng trong nước</li></ul></div>
+   <div class="op"><h3>Khi nào thành người cố định</h3><p class="muted">Khi lãi góp từ khách doanh nghiệp vượt 3 lần chi phí người này trong 3 tháng liền (khoảng 30–35 tr/tháng). Theo dự báo, mốc này rơi vào khoảng 2028.</p></div></div>`;
+  html += `<h2>Thu mua: chủ tiệm giữ, theo luật</h2><div class="panel ops" style="--sc:var(--brass)">
+   <div class="op"><p>Tiền mua hàng năm 2027 của cả tổ hợp chỉ khoảng ${tr(sum(m.capex))}, chưa đủ để nuôi một người thu mua riêng. Chủ tiệm duyệt mọi đơn mua; quầy nhận hàng, kiểm, chụp tình trạng và nhập mã đồ.</p>
+   <ul class="plain"><li><b>Closet</b>: giá nhập tối đa khoảng 3 lần giá thuê (đầm thuê 420k nhập tối đa 1,3 tr); ưu tiên hàng sale, giá sỉ, ký gửi cho thuê</li><li><b>Office</b>: chỉ mua khi khách đã trả trước; đầm Mẹ lấy TIATI MOM giá sỉ</li><li><b>Care</b>: vật tư theo tháng; giá xưởng giặt khô phải dưới ~44,6k/món</li><li><b>Seconde</b>: ký gửi trước, mua đứt tối đa 5–10 tr/tháng khi đối tác bán được trên 50% lô</li></ul></div>
+   <div class="op"><h3>Khi nào tách người thu mua riêng</h3><p class="muted">Khi tiền mua hàng đều trên khoảng 60 tr/tháng, hoặc khi mở điểm thứ hai.</p></div></div>`;
   html += `<h2>Dùng chung và dùng riêng</h2><div class="panel tbl"><table><thead><tr><th>Việc</th><th>Chung hay riêng</th><th>Ai phụ trách</th></tr></thead><tbody>
-    ${[['Mặt bằng, quầy, Zalo tiệm','Chung','Quầy'],['Mã khách (số Zalo), hồ sơ khách','Chung','Quầy'],['Tuyến giao nhận','Chung','Giao nhận'],['Giặt, hấp, sửa mọi món đồ','Chung (qua Care)','Kỹ thuật viên Care'],['Nội dung thương hiệu, mạng xã hội','Chung','CTV nội dung'],['Thuế, sổ sách','Chung','Kế toán thuê ngoài'],['Kho đồ, mã đồ, giá bán','Riêng từng mảng','Chủ tiệm duyệt'],['Website, Sheet dữ liệu','Riêng từng mảng','Chủ tiệm; ChérieX gom số'],['Tư vấn chuyên môn (stylist, kỹ thuật)','Riêng từng mảng','Người của mảng']].map(x=>`<tr><td>${x[0]}</td><td style="text-align:left;font-family:var(--f-body)">${x[1]}</td><td style="text-align:left;font-family:var(--f-body)">${x[2]}</td></tr>`).join('')}
+    ${[['Mặt bằng, quầy, Zalo tiệm','Chung','Quầy'],['Mã khách (số Zalo), hồ sơ khách','Chung','Quầy'],['Tuyến giao nhận','Chung','Giao nhận'],['Giặt, hấp, sửa mọi món đồ','Chung (qua Care)','Kỹ thuật viên Care'],['Nội dung thương hiệu, mạng xã hội','Chung','CTV nội dung'],['Thuế, sổ sách','Chung','Kế toán thuê ngoài'],['Thu mua (đầm, tủ Office, vật tư, lô Đà Lạt)','Chung','Chủ tiệm duyệt, quầy nhập kho'],['Tìm khách doanh nghiệp','Chung','Sale B2B'],['Kho đồ, mã đồ, giá bán','Riêng từng mảng','Chủ tiệm duyệt'],['Website, Sheet dữ liệu','Riêng từng mảng','Chủ tiệm; ChérieX gom số'],['Tư vấn chuyên môn (stylist, kỹ thuật)','Riêng từng mảng','Người của mảng']].map(x=>`<tr><td>${x[0]}</td><td style="text-align:left;font-family:var(--f-body)">${x[1]}</td><td style="text-align:left;font-family:var(--f-body)">${x[2]}</td></tr>`).join('')}
   </tbody></table></div>`;
   html += `<h2>Nhịp làm việc</h2><div class="panel ops" style="--sc:var(--brass)"><div class="op"><ul class="plain"><li>Sáng thứ 2: họp 30 phút cả nhóm, xem đơn tuần, lịch giao, đồ cần giặt</li><li>Mỗi tối: quầy chốt đơn và tiền trong ngày</li><li>Cuối tháng: ChérieX gom số 4 mảng lên trang này</li><li>Người nghỉ thì người khác đỡ: quầy đỡ stylist Closet, chủ tiệm đỡ quầy, thợ may đỡ hấp ở Care</li></ul></div></div>`;
   return html;
