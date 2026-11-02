@@ -1,5 +1,25 @@
 // ChérieX · mô hình hợp nhất 2027 (T1–T12). Đơn vị: đồng. [GĐ] = giả định.
 // Dùng chung cho trang studio (trình duyệt) và kiểm tra bằng node.
+// ---------------- KHUNG LƯƠNG (dùng chung cho mô hình và trang) ----------------
+// base = lương cơ bản (căn cứ đóng BH, không dưới lương tối thiểu vùng I 2026: 5.310.000đ)
+// allow = phụ cấp, phúc lợi trả hằng tháng không tính đóng BH (ăn trưa, xăng, điện thoại)
+// bonus = thưởng hoặc hoa hồng bình quân/tháng [GĐ]; contract: 'hdld' (hợp đồng lao động) | 'dv' (hợp đồng dịch vụ, khoán)
+const STAFF_ROLES = {
+  chu:     { name: 'Chủ tiệm', base: 10000000, allow: 0, bonus: 0, contract: 'chu', note: 'Rút lương chủ; BHXH chủ hộ kinh doanh theo lộ trình luật, chưa tính 2027' },
+  quay:    { name: 'Quầy, CSKH', base: 6000000, allow: 980000, bonus: 500000, contract: 'hdld', note: 'Ăn trưa 780k + điện thoại 200k; thưởng khi doanh thu quầy vượt mục tiêu' },
+  stylist: { name: 'Stylist Closet', base: 6500000, allow: 1280000, bonus: 1200000, contract: 'hdld', note: 'Ăn trưa 780k + xăng 500k; thưởng 8k mỗi lượt thuê tư vấn' },
+  ktv:     { name: 'Kỹ thuật viên Care', base: 6500000, allow: 1080000, bonus: 500000, contract: 'hdld', note: 'Ăn trưa 780k + hóa chất 300k; thưởng khi cả tháng không lỗi phải đền' },
+  giao:    { name: 'Giao nhận (khi cố định)', base: 5500000, allow: 1980000, bonus: 500000, contract: 'hdld', note: 'Xăng 1,2 tr + ăn trưa 780k; thưởng 5k/điểm giao vượt 250 điểm' },
+  b2b:     { name: 'Sale B2B (bán thời gian)', base: 4000000, allow: 0, bonus: 0, contract: 'hdld-pt', note: 'Lương cứng 4 tr + hoa hồng 10% doanh thu khách doanh nghiệp (tính riêng)' },
+};
+function staffCost(k, p) {
+  const r = STAFF_ROLES[k], full = (p && p.benefits) !== 'luat';
+  if (r.contract === 'chu') return r.base;
+  const bh = r.base * 0.215, kpcd = r.base * 0.02;
+  const t13 = full ? r.base / 12 * (r.contract === 'hdld-pt' ? 0.5 : 1) : 0;
+  const perks = full ? (r.contract === 'hdld-pt' ? 100000 : 330000) : 0;
+  return r.base + r.allow + r.bonus + bh + kpcd + t13 + perks;
+}
 function cherieModel(p) {
   const M = 12;
   const F = p.factor;                       // hệ số sản lượng (0,75 / 1 / 1,2)
@@ -16,7 +36,7 @@ function cherieModel(p) {
   const turns = [1.6, 2.0, 1.6, 2.0, 2.5, 2.8, 2.9, 2.6, 1.6, 1.3, 1.7, 2.3].map(t => t * F);
   const careDress = i => (p.care === 'gon' ? (i < 6 ? 45000 : 38000) : (i < 5 ? 45000 : 38000));
   const VAR_OTHER = 47000;
-  const closetFixed = i => 6000000 + (i >= 4 ? 7000000 : 0);
+  const closetFixed = i => 6000000 + (i >= 4 ? staffCost('stylist', p) : 0);
   const life = mode === 'cu' ? 9 : 15;
   const pools = [
     { k: 'sig', name: mode === 'hang' ? 'Signature' : 'Đầm hiện có', n: 39, cost: 3679744, rent: mode === 'hang' ? 650000 : 420000, anc: 59000, mult: mode === 'hang' ? 0.6 : 1, life, resale: 860000, replace: mode !== 'hang' },
@@ -96,7 +116,7 @@ function cherieModel(p) {
   const K = { ext: [], int: [], rev: [], cost: [], tax: [], dep: [], contrib: [], fixed: [], profit: [], capex: [], ktv: [] };
   for (let i = 0; i < M; i++) {
     const ktv = i < 4 ? 1 : 2;
-    const fixed = ktv * 8500000 + (i < 3 ? 8000000 : 6000000) + 500000;
+    const fixed = ktv * staffCost('ktv', p) + (i < 3 ? 8000000 : 6000000) + 500000;
     const dep = equip1 / 36 + (i >= g2 ? equip2 / 36 : 0);
     const b2bComm = (p.careUp || 0) > 0 ? (ext.at(i) - ext.at(i) / (1 + p.careUp)) * 0.10 : 0;   // hoa hồng 10% cho phần khách DN tăng thêm
     const cost = ext.at(i) * 0.31 + intCost.at(i) + b2bComm;
@@ -140,11 +160,11 @@ function cherieModel(p) {
   const sharedItems = [
     ['Mặt bằng chung', Array(12).fill(14000000 * (p.rentx || 1))],
     ['Điện, nước, internet', Array(12).fill(5000000)],
-    ['Chủ tiệm', Array(12).fill(10000000)],
-    ['Quầy, CSKH', Array(12).fill(7000000)],
+    ['Chủ tiệm', Array(12).fill(staffCost('chu', p))],
+    ['Quầy, CSKH', Array(12).fill(staffCost('quay', p))],
     ['Nội dung chung', [3, 3, 3, 3, 6, 6, 6, 6, 6, 6, 6, 6].map(x => x * 1000000)],
     ['Kế toán, phần mềm, dự phòng', Array(12).fill(4000000)],
-    ['Sale B2B, đối tác (lương cứng)', Array.from({ length: 12 }, (_, i) => ((p.careUp || 0) > 0 && i >= 1 ? 4000000 : 0))],
+    ['Sale B2B, đối tác (lương cứng)', Array.from({ length: 12 }, (_, i) => ((p.careUp || 0) > 0 && i >= 1 ? staffCost('b2b', p) : 0))],
   ];
   const shared = Array.from({ length: M }, (_, i) => sum(sharedItems.map(s => s[1].at(i))));
 
@@ -160,4 +180,4 @@ function cherieModel(p) {
   return { C, O, K, S, shared, sharedItems, revExt, segProfit, net, dep, capex, cash, cum,
     params: { ARPU, KHO, equip1, equip2, g2 } };
 }
-if (typeof module !== 'undefined') module.exports = { cherieModel };
+if (typeof module !== 'undefined') module.exports = { cherieModel, staffCost, STAFF_ROLES };
