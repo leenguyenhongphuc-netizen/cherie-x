@@ -172,6 +172,7 @@ footer a{color:var(--muted)}
 // base = lương cơ bản (căn cứ đóng BH, không dưới lương tối thiểu vùng I 2026: 5.310.000đ)
 // allow = phụ cấp, phúc lợi trả hằng tháng không tính đóng BH (ăn trưa, xăng, điện thoại)
 // bonus = thưởng hoặc hoa hồng bình quân/tháng [GĐ]; contract: 'hdld' (hợp đồng lao động) | 'dv' (hợp đồng dịch vụ, khoán)
+const MIN_WAGE = 5310000;   // lương tối thiểu vùng I 2026 (Nghị định 293/2025)
 const STAFF_ROLES = {
   chu:     { name: 'Chủ tiệm', base: 10000000, allow: 0, bonus: 0, contract: 'chu', note: 'Rút lương chủ; BHXH chủ hộ kinh doanh theo lộ trình luật, chưa tính 2027' },
   quay:    { name: 'Quầy, CSKH', base: 6000000, allow: 980000, bonus: 500000, contract: 'hdld', note: 'Ăn trưa 780k + điện thoại 200k; thưởng khi doanh thu quầy vượt mục tiêu' },
@@ -183,7 +184,8 @@ const STAFF_ROLES = {
 function staffCost(k, p) {
   const r = STAFF_ROLES[k], full = (p && p.benefits) !== 'luat';
   if (r.contract === 'chu') return r.base;
-  const bh = r.base * 0.215, kpcd = r.base * 0.02;
+  const bhBase = r.contract === 'hdld-pt' ? r.base : Math.min(r.base, MIN_WAGE);   // đóng bảo hiểm trên lương tối thiểu vùng I
+  const bh = bhBase * 0.215, kpcd = bhBase * 0.02;
   const t13 = full ? r.base / 12 * (r.contract === 'hdld-pt' ? 0.5 : 1) : 0;
   const perks = full ? (r.contract === 'hdld-pt' ? 100000 : 330000) : 0;
   return r.base + r.allow + r.bonus + bh + kpcd + t13 + perks;
@@ -348,7 +350,7 @@ function cherieModel(p) {
   return { C, O, K, S, shared, sharedItems, revExt, segProfit, net, dep, capex, cash, cum,
     params: { ARPU, KHO, equip1, equip2, g2 } };
 }
-if (typeof module !== 'undefined') module.exports = { cherieModel, staffCost, STAFF_ROLES };
+if (typeof module !== 'undefined') module.exports = { cherieModel, staffCost, STAFF_ROLES, MIN_WAGE };
 
 (function(){
 const SEG = {
@@ -578,13 +580,13 @@ function viewNhanSu(m,r,pname,p){
       ${segUnit('seconde','Seconde','var(--seconde)', ownerLine('Duyệt giá, ký hợp đồng ủy thác với đối tác Đà Lạt'))}
     </div></div></div>`;
   const full = p.benefits !== 'luat';
-  const roleRow = k => { const R = STAFF_ROLES[k]; const bh = R.contract==='chu'?0:R.base*0.235; const t13 = R.contract==='chu'||!full?0:R.base/12*(R.contract==='hdld-pt'?0.5:1); const perk = R.contract==='chu'||!full?0:(R.contract==='hdld-pt'?100000:330000);
+  const roleRow = k => { const R = STAFF_ROLES[k]; const bh = R.contract==='chu'?0:(R.contract==='hdld-pt'?R.base:Math.min(R.base,MIN_WAGE))*0.235; const t13 = R.contract==='chu'||!full?0:R.base/12*(R.contract==='hdld-pt'?0.5:1); const perk = R.contract==='chu'||!full?0:(R.contract==='hdld-pt'?100000:330000);
     return `<tr><td>${R.name}<small style="display:block;color:var(--muted);font-family:var(--f-body);white-space:normal">${R.note}</small></td><td>${tr(R.base)}</td><td>${tr(R.allow+R.bonus)}</td><td>${tr(bh)}</td><td>${tr(t13+perk)}</td><td><b>${tr(staffCost(k,p))}</b></td></tr>`; };
-  html += `<h2>Khung lương và chi phí mỗi người</h2><p class="lead">Chi phí tổ hợp thật sự bỏ ra cho một người cố định cao hơn lương cơ bản khoảng 60–75%. Lương cơ bản là phần đóng bảo hiểm, không dưới lương tối thiểu vùng I 2026 (5.310.000đ). Số theo tháng, bậc 1.</p>
-  <div class="panel tbl"><table><thead><tr><th>Vị trí</th><th>Lương cơ bản</th><th>Phụ cấp + thưởng</th><th>BH + công đoàn</th><th>Tháng 13 + phúc lợi</th><th>Tổ hợp chi</th></tr></thead><tbody>${['quay','stylist','ktv','giao','b2b','chu'].map(roleRow).join('')}</tbody></table></div>
+  html += `<h2>Khung lương và chi phí mỗi người</h2><p class="lead">Bảo hiểm đóng trên lương tối thiểu vùng I 2026 (5.310.000đ). Chi phí tổ hợp bỏ ra cho một người cố định cao hơn lương khoảng 50–60%. Số theo tháng, bậc 1.</p>
+  <div class="panel tbl"><table><thead><tr><th>Vị trí</th><th>Lương</th><th>Phụ cấp + thưởng</th><th>BH + công đoàn (trên 5,31 tr)</th><th>Tháng 13 + phúc lợi</th><th>Tổ hợp chi</th></tr></thead><tbody>${['quay','stylist','ktv','giao','b2b','chu'].map(roleRow).join('')}</tbody></table></div>
   <div class="panel ops" style="--sc:var(--brass)">
-   <div class="op"><h3>Bậc lương</h3><ul class="plain"><li><b>Thử việc</b> (tối đa 2 tháng): 85% lương cơ bản, chưa đóng bảo hiểm nếu ký hợp đồng thử việc riêng</li><li><b>Bậc 1</b>: lương trong bảng trên</li><li><b>Bậc 2</b>: +10% lương cơ bản sau 12 tháng và đạt chỉ tiêu 2 quý liền</li></ul></div>
-   <div class="op"><h3>Bảo hiểm bắt buộc</h3><p class="muted">Tổ hợp đóng 21,5% lương cơ bản (BHXH 17,5%, BHYT 3%, BHTN 1%), người lao động đóng 10,5% trừ vào lương. Cộng kinh phí công đoàn 2% [cần kế toán xác nhận với hộ kinh doanh]. Từ 1/7/2025 người làm bán thời gian có lương từ mức tham chiếu (2.530.000đ từ 1/7/2026) cũng phải đóng, nên sale B2B 4 tr vẫn đóng bảo hiểm. Cộng tác viên ký hợp đồng dịch vụ, trả theo việc, thì không đóng.</p></div>
+   <div class="op"><h3>Bậc lương</h3><ul class="plain"><li><b>Thử việc</b> (tối đa 2 tháng): 85% lương, chưa đóng bảo hiểm nếu ký hợp đồng thử việc riêng</li><li><b>Bậc 1</b>: lương trong bảng trên</li><li><b>Bậc 2</b>: +10% lương sau 12 tháng và đạt chỉ tiêu 2 quý liền</li></ul></div>
+   <div class="op"><h3>Bảo hiểm bắt buộc</h3><p class="muted">Đóng trên mức 5.310.000đ: tổ hợp 21,5% (~1,14 tr/người), người lao động 10,5% (~558k). Để đúng luật, hợp đồng lao động ghi lương 5.310.000đ; phần còn lại trả bằng thưởng theo hiệu quả (lượt thuê, doanh số, chất lượng) và phúc lợi (ăn trưa, xăng, điện thoại), không ghi thành phụ cấp cố định, vì phụ cấp cố định ghi trong hợp đồng cũng phải đóng bảo hiểm. Cộng kinh phí công đoàn 2% [cần kế toán xác nhận với hộ kinh doanh]. Từ 1/7/2025 người làm bán thời gian có lương từ mức tham chiếu (2.530.000đ từ 1/7/2026) cũng phải đóng, nên sale B2B 4 tr vẫn đóng bảo hiểm. Cộng tác viên ký hợp đồng dịch vụ, trả theo việc, thì không đóng.</p></div>
    <div class="op"><h3>Phúc lợi đề xuất ${full?'(đang tính)':'(đang tắt, chỉ tính mức luật)'}</h3><ul class="plain"><li>Lương tháng 13: 1 tháng lương cơ bản, trả trước Tết, tính theo số tháng làm</li><li>Ăn trưa 30k/ngày (đã nằm trong phụ cấp)</li><li>Thuê đồ CHÉRIE miễn phí 2 lượt/tháng; giặt hấp đồ cá nhân ở Care giá nội bộ</li><li>Đồng phục 2 bộ/năm; khám sức khỏe 1 lần/năm; quà sinh nhật, 8/3, 20/10</li><li>12 ngày phép năm theo luật; người làm từ 12 tháng được 1 ngày phép thêm</li></ul><p class="muted">Phần phúc lợi ngoài tháng 13 khoảng 330k/người/tháng.</p></div></div>`;
   html += `<h2>Sale B2B: ai đi tìm khách doanh nghiệp</h2><div class="panel ops" style="--sc:var(--brass)">
    <div class="op"><p>Một người bán thời gian từ T2, lương cứng 4 tr và hoa hồng 10% trên doanh thu khách doanh nghiệp mang về. Làm cho cả 4 mảng, mỗi mảng một danh sách mục tiêu:</p>

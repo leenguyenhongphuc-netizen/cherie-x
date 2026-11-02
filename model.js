@@ -4,6 +4,7 @@
 // base = lương cơ bản (căn cứ đóng BH, không dưới lương tối thiểu vùng I 2026: 5.310.000đ)
 // allow = phụ cấp, phúc lợi trả hằng tháng không tính đóng BH (ăn trưa, xăng, điện thoại)
 // bonus = thưởng hoặc hoa hồng bình quân/tháng [GĐ]; contract: 'hdld' (hợp đồng lao động) | 'dv' (hợp đồng dịch vụ, khoán)
+const MIN_WAGE = 5310000;   // lương tối thiểu vùng I 2026 (Nghị định 293/2025)
 const STAFF_ROLES = {
   chu:     { name: 'Chủ tiệm', base: 10000000, allow: 0, bonus: 0, contract: 'chu', note: 'Rút lương chủ; BHXH chủ hộ kinh doanh theo lộ trình luật, chưa tính 2027' },
   quay:    { name: 'Quầy, CSKH', base: 6000000, allow: 980000, bonus: 500000, contract: 'hdld', note: 'Ăn trưa 780k + điện thoại 200k; thưởng khi doanh thu quầy vượt mục tiêu' },
@@ -15,7 +16,8 @@ const STAFF_ROLES = {
 function staffCost(k, p) {
   const r = STAFF_ROLES[k], full = (p && p.benefits) !== 'luat';
   if (r.contract === 'chu') return r.base;
-  const bh = r.base * 0.215, kpcd = r.base * 0.02;
+  const bhBase = r.contract === 'hdld-pt' ? r.base : Math.min(r.base, MIN_WAGE);   // đóng bảo hiểm trên lương tối thiểu vùng I
+  const bh = bhBase * 0.215, kpcd = bhBase * 0.02;
   const t13 = full ? r.base / 12 * (r.contract === 'hdld-pt' ? 0.5 : 1) : 0;
   const perks = full ? (r.contract === 'hdld-pt' ? 100000 : 330000) : 0;
   return r.base + r.allow + r.bonus + bh + kpcd + t13 + perks;
@@ -180,4 +182,4 @@ function cherieModel(p) {
   return { C, O, K, S, shared, sharedItems, revExt, segProfit, net, dep, capex, cash, cum,
     params: { ARPU, KHO, equip1, equip2, g2 } };
 }
-if (typeof module !== 'undefined') module.exports = { cherieModel, staffCost, STAFF_ROLES };
+if (typeof module !== 'undefined') module.exports = { cherieModel, staffCost, STAFF_ROLES, MIN_WAGE };
